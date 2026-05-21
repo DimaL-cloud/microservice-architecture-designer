@@ -19,3 +19,9 @@ User can also choose existing project and view generated artifacts.
 User should be able to choose LLM model. As for now we need to support OpenAI and Claude models.
 We don't need to hardcode specific LLM Provider API - it should be easy approach to support and switch.
 LLM picker is per-project setting.
+
+The structured input is kept on the frontend. Backend saves it as JSONB in db, because it is only used to build the LLM prompt.
+
+Prompts should be stored in backend/src/main/resources in Markdown format.
+
+Mermaid diagrams should be validated via mermaid-validator microservice. It returns error which will be helpful to fix the diagram if it is not correct.
