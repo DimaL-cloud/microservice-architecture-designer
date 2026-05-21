@@ -1,4 +1,4 @@
-package ua.dmytrolutsiuk.backend.llm;
+package ua.dmytrolutsiuk.backend.model;
 
 public enum LlmProvider {
     ANTHROPIC,
