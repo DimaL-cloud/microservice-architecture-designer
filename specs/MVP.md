@@ -3,7 +3,7 @@ Summary: Web application for developers, CTOs and system architects to simplify 
 One of the advantages is structured input. In regular chatbots like Claude or ChatGPT, it's easy to forget to specify a parameter, 
 such as non-functional requirements that affects the microservice architecture.
 Application flow:
-1. User creates project and fills information about what he wants to design.
+1. User creates project with filled information about what he wants to design.
 2. Send all this information to AI to come up with questions, then these questions appear on website, where user can answer.
 3. Send information and answered questions to design microservice architecture. LLM generates:
 - SDD (System Design Document) in Markdown format
