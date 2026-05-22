@@ -15,6 +15,10 @@ spring:
       api-key: ${ANTHROPIC_API_KEY:dummy}
     openai:
       api-key: ${OPENAI_API_KEY:dummy}
+  http:
+    serviceclient:
+      mermaid-validator:
+        base-url: ${MERMAID_VALIDATOR_URL:http://localhost:3000}
 
 llm:
   models:
