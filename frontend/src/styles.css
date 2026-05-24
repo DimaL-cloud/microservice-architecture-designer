@@ -1,3 +1,42 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+@import './styles/tokens/colors.css';
+@import './styles/tokens/typography.css';
+@import './styles/tokens/radius.css';
+@import './styles/tokens/shadows.css';
+@import './styles/tokens/motion.css';
+
+* { box-sizing: border-box; }
+
+html, body, app-root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 25%, transparent);
+}
+
+/* Firefox */
+* { scrollbar-color: var(--text-faint) transparent; }
+
+/* WebKit */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--text-faint);
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }

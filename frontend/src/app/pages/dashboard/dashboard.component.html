@@ -1,0 +1,74 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Projects</h1>
+      <div class="page-sub">
+        Design production-ready microservice architectures in minutes by turning your requirements into system design artifacts
+      </div>
+    </div>
+    <div class="split">
+      <button class="btn btn-primary" (click)="onNewProject()">
+        <app-icon name="plus" [size]="13" />
+        New project
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search">
+      <app-icon name="search" [size]="14" />
+      <input
+        type="text"
+        class="input"
+        placeholder="Search projects"
+        [ngModel]="q()"
+        (ngModelChange)="q.set($event)"
+      />
+    </div>
+    @for (f of filters; track f) {
+      <button class="chip" [class.on]="filter() === f" (click)="filter.set(f)">
+        {{ filterLabel(f) }}
+      </button>
+    }
+    <div class="spacer"></div>
+  </div>
+
+  @if (filtered().length === 0) {
+    <div class="empty">
+      @if (projects().length === 0) {
+        No projects yet
+      } @else {
+        No projects match your filters
+      }
+    </div>
+  } @else {
+    <div class="project-grid">
+      @for (p of filtered(); track p.id) {
+        <article class="card hover project-card">
+          <div class="pc-top">
+            <h3>{{ p.name }}</h3>
+            <span class="tag {{ statusVisual(p.status).tagClass }}">
+              @if (p.status === 'READY') {
+                <app-icon name="check" [size]="9" />
+              } @else if (p.status === 'GENERATING') {
+                <span class="gen-pulse"></span>
+              } @else {
+                <app-icon name="alert" [size]="9" />
+              }
+              {{ statusVisual(p.status).label }}
+            </span>
+          </div>
+          <div class="pc-desc">{{ p.description }}</div>
+          <div class="pc-meta">
+            <span>
+              <app-icon class="meta-icon" name="model" [size]="11" />
+              {{ modelName(p.llmModelId) }}
+            </span>
+            <span class="dot"></span>
+            <span>{{ updatedRelative(p.createdAt) }}</span>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
