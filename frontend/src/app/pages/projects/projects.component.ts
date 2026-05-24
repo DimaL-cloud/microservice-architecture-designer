@@ -38,13 +38,13 @@ const STATUS_VISUAL: Record<ProjectStatus, StatusVisual> = {
 };
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'app-projects',
   standalone: true,
   imports: [FormsModule, IconComponent],
-  templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css'
+  templateUrl: './projects.component.html',
+  styleUrl: './projects.component.css'
 })
-export class DashboardComponent {
+export class ProjectsComponent {
   private readonly projectService = inject(ProjectService);
   private readonly llmModelService = inject(LlmModelService);
 

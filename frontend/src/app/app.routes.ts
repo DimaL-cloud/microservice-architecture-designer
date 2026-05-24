@@ -4,7 +4,7 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      import('./pages/projects/projects.component').then(m => m.ProjectsComponent)
   },
   { path: '**', redirectTo: '' }
 ];
