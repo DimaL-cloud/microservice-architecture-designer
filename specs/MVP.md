@@ -1,4 +1,4 @@
-Name: Microservice Architecture Designer
+Name: Microservice Architecture Designer (MAD).
 Summary: Web application for developers, CTOs and system architects to simplify the design of microservice architecture. 
 One of the advantages is structured input. In regular chatbots like Claude or ChatGPT, it's easy to forget to specify a parameter, 
 such as non-functional requirements that affects the microservice architecture.
