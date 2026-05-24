@@ -8,7 +8,7 @@ Application flow:
 3. Send information and answered questions to design microservice architecture. LLM generates:
 - C4 Context diagram in Mermaid format
 - C4 Container diagram in Mermaid format
-- SDD (System Design Document) in Markdown format
+- SDD (System Design Document) in Markdown format. Table of Contents should be displayed in UI based on Markdown.
 - ADRs (Architecture Decision Records) in Markdown format
 - Sequence diagrams in Mermaid format
 4. Review output architecture using separate request to LLM and fix issues. No actions required from user, backend performs this step automatically.
