@@ -1,5 +1,10 @@
-:root {
+@theme {
   --font-sans: "Geist", "Inter", -apple-system, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
   --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+
+  /* Type scale — 3 sizes, all even, ~1.17x and 1.71x ratios. */
+  --text-meta: 12px;       /* small auxiliary text: status pills, meta info, chips, card descriptions */
+  --text-body: 14px;       /* default body + interactive controls: buttons, inputs, page subtitle, brand, card titles */
+  --text-heading: 24px;    /* page heading */
 }

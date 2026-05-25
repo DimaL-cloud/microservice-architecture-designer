@@ -7,7 +7,6 @@ import { IconComponent } from '../icon/icon.component';
   selector: 'app-topbar',
   standalone: true,
   imports: [RouterLink, IconComponent],
-  templateUrl: './topbar.component.html',
-  styleUrl: './topbar.component.css'
+  templateUrl: './topbar.component.html'
 })
 export class TopbarComponent {}

@@ -14,8 +14,8 @@ html, body, app-root { height: 100%; }
 
 body {
   margin: 0;
-  background: var(--surface);
-  color: var(--text);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
@@ -25,18 +25,18 @@ body {
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--accent) 25%, transparent);
+  background: color-mix(in oklab, var(--color-accent) 25%, transparent);
 }
 
 /* Firefox */
-* { scrollbar-color: var(--text-faint) transparent; }
+* { scrollbar-color: var(--color-text-faint) transparent; }
 
 /* WebKit */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--text-faint);
+  background: var(--color-text-faint);
   border-radius: 999px;
-  border: 2px solid var(--surface);
+  border: 2px solid var(--color-surface);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-subtle); }
