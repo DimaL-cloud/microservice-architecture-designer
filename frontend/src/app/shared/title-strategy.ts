@@ -1,15 +1,13 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 
 @Injectable()
 export class MadTitleStrategy extends TitleStrategy {
-  constructor(private readonly title: Title) {
-    super();
-  }
+  private readonly title = inject(Title);
 
   override updateTitle(snapshot: RouterStateSnapshot): void {
     const pageTitle = this.buildTitle(snapshot);
-    this.title.setTitle(pageTitle ? `MAD • ${pageTitle}` : 'MAD');
+    this.title.setTitle(pageTitle ? `${pageTitle} | MAD` : 'MAD');
   }
 }

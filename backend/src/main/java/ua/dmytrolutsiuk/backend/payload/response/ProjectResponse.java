@@ -7,7 +7,7 @@ import java.time.Instant;
 public record ProjectResponse(
         Long id,
         String name,
-        String description,
+        String summary,
         ProjectStatus status,
         String llmModelId,
         Instant createdAt

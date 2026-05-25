@@ -67,7 +67,7 @@ export class ProjectList {
       const key = backendToDesignStatus(p.status);
       if (f !== 'all' && key !== f) return false;
       if (query) {
-        const haystack = (p.name + ' ' + (p.description ?? '')).toLowerCase();
+        const haystack = (p.name + ' ' + (p.summary ?? '')).toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       return true;
