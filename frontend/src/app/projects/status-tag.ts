@@ -38,11 +38,11 @@ const BASE_CLASSES =
   template: `
     <span [class]="classes()">
       @if (visual().icon === 'check') {
-        <app-icon name="check" [size]="9" />
+        <app-icon name="check" [size]="11" />
       } @else if (visual().icon === 'pulse') {
         <span class="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse-soft"></span>
       } @else {
-        <app-icon name="alert" [size]="9" />
+        <app-icon name="alert" [size]="11" />
       }
       {{ visual().label }}
     </span>
