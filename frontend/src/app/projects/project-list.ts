@@ -4,14 +4,14 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
 import { formatDistanceToNow } from 'date-fns';
 
-import { ButtonComponent } from '../../components/button/button.component';
-import { ChipComponent } from '../../components/chip/chip.component';
-import { IconComponent } from '../../components/icon/icon.component';
-import { InputDirective } from '../../components/input/input.directive';
-import { StatusTagComponent } from '../../components/status-tag/status-tag.component';
-import { ProjectResponse } from '../../models/project';
-import { ProjectService } from '../../services/project.service';
-import { LlmModelService } from '../../services/llm-model.service';
+import { Button } from '../shared/ui/button';
+import { Chip } from '../shared/ui/chip';
+import { Icon } from '../shared/ui/icon';
+import { Input } from '../shared/ui/input';
+import { LlmModelApi } from '../llm-models/llm-model-api';
+import { ProjectResponse } from './project';
+import { ProjectApi } from './project-api';
+import { StatusTag } from './status-tag';
 
 type FilterKey = 'all' | 'ready' | 'gen' | 'failed';
 
@@ -31,32 +31,32 @@ function backendToDesignStatus(s: ProjectResponse['status']): 'ready' | 'gen' | 
 }
 
 @Component({
-  selector: 'app-projects',
+  selector: 'app-project-list',
   standalone: true,
   imports: [
     FormsModule,
-    ButtonComponent,
-    ChipComponent,
-    IconComponent,
-    InputDirective,
-    StatusTagComponent
+    Button,
+    Chip,
+    Icon,
+    Input,
+    StatusTag
   ],
-  templateUrl: './projects.component.html'
+  templateUrl: './project-list.html'
 })
-export class ProjectsComponent {
-  private readonly projectService = inject(ProjectService);
-  private readonly llmModelService = inject(LlmModelService);
+export class ProjectList {
+  private readonly projectApi = inject(ProjectApi);
+  private readonly llmModelApi = inject(LlmModelApi);
 
   readonly q = signal('');
   readonly filter = signal<FilterKey>('all');
 
   readonly filters = FILTERS;
 
-  readonly projects = toSignal(this.projectService.list(), {
+  readonly projects = toSignal(this.projectApi.list(), {
     initialValue: [] as ProjectResponse[]
   });
 
-  readonly modelNames = toSignal(this.llmModelService.namesById(), {
+  readonly modelNames = toSignal(this.llmModelApi.namesById(), {
     initialValue: new Map<string, string>()
   });
 

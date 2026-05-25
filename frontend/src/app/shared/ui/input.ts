@@ -12,4 +12,4 @@ const INPUT_CLASSES =
     class: INPUT_CLASSES
   }
 })
-export class InputDirective {}
+export class Input {}

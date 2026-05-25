@@ -16,7 +16,7 @@ const UNSELECTED_CLASSES =
     '[class]': 'classes()'
   }
 })
-export class ChipComponent {
+export class Chip {
   readonly selected = input(false);
 
   readonly classes = computed(

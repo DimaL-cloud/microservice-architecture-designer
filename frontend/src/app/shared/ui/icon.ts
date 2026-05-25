@@ -8,9 +8,9 @@ export type IconName = 'logo' | 'plus' | 'search' | 'check' | 'alert' | 'model';
   selector: 'app-icon',
   standalone: true,
   template: '',
-  styleUrl: './icon.component.css'
+  styleUrl: './icon.css'
 })
-export class IconComponent {
+export class Icon {
   private static readonly cache = new Map<IconName, Promise<string>>();
 
   private readonly http = inject(HttpClient);
@@ -29,12 +29,12 @@ export class IconComponent {
   }
 
   private load(name: IconName): Promise<string> {
-    let cached = IconComponent.cache.get(name);
+    let cached = Icon.cache.get(name);
     if (!cached) {
       cached = firstValueFrom(
         this.http.get(`icons/${name}.svg`, { responseType: 'text' })
       );
-      IconComponent.cache.set(name, cached);
+      Icon.cache.set(name, cached);
     }
     return cached;
   }

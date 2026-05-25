@@ -20,7 +20,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     '[class]': 'classes()'
   }
 })
-export class ButtonComponent {
+export class Button {
   readonly variant = input<ButtonVariant>('default');
 
   readonly classes = computed(() => `${BASE_CLASSES} ${VARIANT_CLASSES[this.variant()]}`);

@@ -2,10 +2,10 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, shareReplay } from 'rxjs';
 
-import { LlmModel } from '../models/llm-model';
+import { LlmModel } from './llm-model';
 
 @Injectable({ providedIn: 'root' })
-export class LlmModelService {
+export class LlmModelApi {
   private readonly http = inject(HttpClient);
 
   private readonly models$: Observable<LlmModel[]> = this.http

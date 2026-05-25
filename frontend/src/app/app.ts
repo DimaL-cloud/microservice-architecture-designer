@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
-import { TopbarComponent } from './components/topbar/topbar.component';
+import { Topbar } from './topbar';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, TopbarComponent],
+  imports: [RouterOutlet, Topbar],
   templateUrl: './app.html'
 })
 export class App {}

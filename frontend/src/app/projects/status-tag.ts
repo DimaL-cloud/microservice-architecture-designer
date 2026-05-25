@@ -1,7 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 
-import { IconComponent } from '../icon/icon.component';
-import { ProjectStatus } from '../../models/project';
+import { Icon } from '../shared/ui/icon';
+import { ProjectStatus } from './project';
 
 type Visual = {
   label: string;
@@ -34,7 +34,7 @@ const BASE_CLASSES =
 @Component({
   selector: 'mad-status-tag',
   standalone: true,
-  imports: [IconComponent],
+  imports: [Icon],
   template: `
     <span [class]="classes()">
       @if (visual().icon === 'check') {
@@ -48,7 +48,7 @@ const BASE_CLASSES =
     </span>
   `
 })
-export class StatusTagComponent {
+export class StatusTag {
   readonly status = input.required<ProjectStatus>();
 
   readonly visual = computed(() => VISUAL[this.status()]);
