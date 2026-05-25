@@ -9,7 +9,7 @@ const BASE_CLASSES =
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default: 'bg-surface text-text-body border-border hover:bg-surface-muted',
-  primary: 'bg-text text-surface border-text hover:bg-text-body'
+  primary: 'bg-text text-surface border-text hover:bg-text-muted hover:border-text-muted'
 };
 
 @Component({
