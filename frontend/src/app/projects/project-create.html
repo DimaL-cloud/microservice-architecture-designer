@@ -1,31 +1,246 @@
 <div class="max-w-[820px] mx-auto pt-14 px-9 pb-20">
-  <a
-    [routerLink]="['/']"
-    class="inline-flex items-center gap-1.5 text-meta text-text-subtle hover:text-text-body no-underline mb-4"
-  >
-    <span aria-hidden="true">&larr;</span>
-    Back to projects
-  </a>
+  @if (phase() === 'input') {
+    <a
+      [routerLink]="['/']"
+      class="inline-flex items-center gap-1.5 text-meta text-text-subtle hover:text-text-body no-underline mb-4"
+    >
+      <span aria-hidden="true">&larr;</span>
+      Back to projects
+    </a>
 
-  <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">New project</h1>
-  <div class="text-text-subtle text-body mt-1">
-    Provide context so the AI can design a tailored architecture. Only name, description and LLM are required.
-  </div>
+    <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">New project</h1>
+    <div class="text-text-subtle text-body mt-1">
+      Provide context so the AI can design a tailored architecture. Only name, description and LLM are required.
+    </div>
 
-  @for (section of sections; track section.id) {
-    <section class="mt-10 pt-7 border-t border-border">
-      <h2 class="text-body font-semibold tracking-[-0.005em] m-0">{{ section.title }}</h2>
-      @if (section.subtitle) {
-        <div class="text-meta text-text-subtle mt-1">{{ section.subtitle }}</div>
-      }
+    @for (section of sections; track section.id) {
+      <section class="mt-10 pt-7 border-t border-border">
+        <h2 class="text-body font-semibold tracking-[-0.005em] m-0">{{ section.title }}</h2>
+        @if (section.subtitle) {
+          <div class="text-meta text-text-subtle mt-1">{{ section.subtitle }}</div>
+        }
 
-      @for (q of section.questions; track q.id) {
-        <div class="mt-6">
-          <label [attr.for]="'q-' + q.id" class="block text-body text-text-body font-medium leading-[1.4]">
-            {{ q.label }}
-            @if (q.required) {
-              <span class="text-danger-strong" aria-hidden="true">&nbsp;*</span>
+        @for (q of section.questions; track q.id) {
+          <div class="mt-6">
+            <label [attr.for]="'q-' + q.id" class="block text-body text-text-body font-medium leading-[1.4]">
+              {{ q.label }}
+              @if (q.required) {
+                <span class="text-danger-strong" aria-hidden="true">&nbsp;*</span>
+              }
+            </label>
+            @if (q.helpText) {
+              <div class="text-meta text-text-subtle mt-0.5">{{ q.helpText }}</div>
             }
+
+            <div class="mt-2">
+              @switch (q.type) {
+                @case ('text') {
+                  <input
+                    mad-input
+                    type="text"
+                    [id]="'q-' + q.id"
+                    [placeholder]="q.placeholder ?? ''"
+                    [ngModel]="textValue(q)"
+                    (ngModelChange)="setTextValue(q, $any($event))"
+                  />
+                }
+                @case ('number') {
+                  <input
+                    mad-input
+                    type="number"
+                    [id]="'q-' + q.id"
+                    [placeholder]="q.placeholder ?? ''"
+                    [ngModel]="textValue(q)"
+                    (ngModelChange)="setTextValue(q, $any($event))"
+                  />
+                }
+                @case ('longtext') {
+                  <textarea
+                    [id]="'q-' + q.id"
+                    rows="4"
+                    class="w-full pl-3 pr-[11px] py-2 rounded-sm border border-border bg-surface text-body text-text outline-none transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent focus:shadow-focus-ring resize-y"
+                    [placeholder]="q.placeholder ?? ''"
+                    [ngModel]="textValue(q)"
+                    (ngModelChange)="setTextValue(q, $any($event))"
+                  ></textarea>
+                }
+                @case ('single') {
+                  <div
+                    class="flex flex-wrap gap-1.5"
+                    role="group"
+                    [attr.aria-labelledby]="'q-' + q.id"
+                  >
+                    @for (opt of q.options; track opt) {
+                      <button
+                        type="button"
+                        mad-chip
+                        [selected]="isSelected(q, opt)"
+                        (click)="toggle(q, opt)"
+                      >
+                        {{ opt }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      mad-chip
+                      [selected]="isSelected(q, OTHER)"
+                      (click)="toggle(q, OTHER)"
+                    >
+                      Other&hellip;
+                    </button>
+                    <button
+                      type="button"
+                      mad-chip
+                      [selected]="isSelected(q, DECIDE)"
+                      (click)="toggle(q, DECIDE)"
+                    >
+                      Decide for me
+                    </button>
+                  </div>
+                  @if (showOtherInput(q)) {
+                    <input
+                      mad-input
+                      type="text"
+                      class="mt-2"
+                      placeholder="Describe your answer"
+                      [ngModel]="otherText(q)"
+                      (ngModelChange)="setOtherText(q, $any($event))"
+                    />
+                  }
+                }
+                @case ('multi') {
+                  <div
+                    class="flex flex-wrap gap-1.5"
+                    role="group"
+                    [attr.aria-labelledby]="'q-' + q.id"
+                  >
+                    @for (opt of q.options; track opt) {
+                      <button
+                        type="button"
+                        mad-chip
+                        [selected]="isSelected(q, opt)"
+                        (click)="toggle(q, opt)"
+                      >
+                        {{ opt }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      mad-chip
+                      [selected]="isSelected(q, OTHER)"
+                      (click)="toggle(q, OTHER)"
+                    >
+                      Other&hellip;
+                    </button>
+                    <button
+                      type="button"
+                      mad-chip
+                      [selected]="isSelected(q, DECIDE)"
+                      (click)="toggle(q, DECIDE)"
+                    >
+                      Decide for me
+                    </button>
+                  </div>
+                  @if (showOtherInput(q)) {
+                    <input
+                      mad-input
+                      type="text"
+                      class="mt-2"
+                      placeholder="Describe your answer"
+                      [ngModel]="otherText(q)"
+                      (ngModelChange)="setOtherText(q, $any($event))"
+                    />
+                  }
+                }
+              }
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    <section class="mt-10 pt-7 border-t border-border">
+      <h2 class="text-body font-semibold tracking-[-0.005em] m-0">
+        LLM model
+        <span class="text-danger-strong" aria-hidden="true">&nbsp;*</span>
+      </h2>
+      <div class="text-meta text-text-subtle mt-1">
+        Choose the model that will generate the architecture for this project.
+      </div>
+      <div class="flex flex-wrap gap-1.5 mt-3" role="radiogroup" aria-label="LLM model">
+        @for (m of llmModels(); track m.id) {
+          <button
+            type="button"
+            mad-chip
+            [selected]="selectedLlm() === m.id"
+            [attr.aria-checked]="selectedLlm() === m.id"
+            role="radio"
+            (click)="selectedLlm.set(m.id)"
+          >
+            {{ m.name }}
+          </button>
+        }
+        @if (llmModels().length === 0) {
+          <span class="text-meta text-text-subtle">Loading models&hellip;</span>
+        }
+      </div>
+    </section>
+
+    <div class="mt-10 flex items-center justify-end gap-3">
+      @if (generationError(); as err) {
+        <span class="text-meta text-danger-strong">{{ err }}</span>
+      } @else if (!canContinue()) {
+        <span class="text-meta text-text-subtle">
+          Fill in name, description and pick an LLM to continue.
+        </span>
+      }
+      <button
+        type="button"
+        mad-button
+        variant="primary"
+        [disabled]="!canContinue() || generating()"
+        (click)="onContinue()"
+      >
+        @if (generating()) {
+          <svg
+            class="animate-spin h-3.5 w-3.5 -ml-0.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
+            <path
+              d="M4 12a8 8 0 018-8"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+          </svg>
+          Generating&hellip;
+        } @else {
+          Continue
+        }
+      </button>
+    </div>
+  } @else {
+    <a
+      (click)="onBackToEdit()"
+      class="inline-flex items-center gap-1.5 text-meta text-text-subtle hover:text-text-body no-underline mb-4 cursor-pointer"
+    >
+      <span aria-hidden="true">&larr;</span>
+      Back to edit
+    </a>
+
+    <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">Follow-up questions</h1>
+    <div class="text-text-subtle text-body mt-1">
+      Answer what you can &mdash; skip any you&rsquo;re unsure about. These refine the architecture the AI will design.
+    </div>
+
+    <section class="mt-10 pt-7 border-t border-border">
+      @for (q of generatedQuestions(); track q.id) {
+        <div class="mt-6 first:mt-0">
+          <label [attr.for]="'g-' + q.id" class="block text-body text-text-body font-medium leading-[1.4]">
+            {{ q.label }}
           </label>
           @if (q.helpText) {
             <div class="text-meta text-text-subtle mt-0.5">{{ q.helpText }}</div>
@@ -37,44 +252,34 @@
                 <input
                   mad-input
                   type="text"
-                  [id]="'q-' + q.id"
-                  [placeholder]="q.placeholder ?? ''"
-                  [ngModel]="textValue(q)"
-                  (ngModelChange)="setTextValue(q, $any($event))"
+                  [id]="'g-' + q.id"
+                  placeholder="Your answer"
+                  [ngModel]="generated.textValue(q)"
+                  (ngModelChange)="generated.setTextValue(q, $any($event))"
                 />
               }
               @case ('number') {
                 <input
                   mad-input
                   type="number"
-                  [id]="'q-' + q.id"
-                  [placeholder]="q.placeholder ?? ''"
-                  [ngModel]="textValue(q)"
-                  (ngModelChange)="setTextValue(q, $any($event))"
+                  [id]="'g-' + q.id"
+                  placeholder="Your answer"
+                  [ngModel]="generated.textValue(q)"
+                  (ngModelChange)="generated.setTextValue(q, $any($event))"
                 />
-              }
-              @case ('longtext') {
-                <textarea
-                  [id]="'q-' + q.id"
-                  rows="4"
-                  class="w-full pl-3 pr-[11px] py-2 rounded-sm border border-border bg-surface text-body text-text outline-none transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent focus:shadow-focus-ring resize-y"
-                  [placeholder]="q.placeholder ?? ''"
-                  [ngModel]="textValue(q)"
-                  (ngModelChange)="setTextValue(q, $any($event))"
-                ></textarea>
               }
               @case ('single') {
                 <div
                   class="flex flex-wrap gap-1.5"
                   role="group"
-                  [attr.aria-labelledby]="'q-' + q.id"
+                  [attr.aria-labelledby]="'g-' + q.id"
                 >
                   @for (opt of q.options; track opt) {
                     <button
                       type="button"
                       mad-chip
-                      [selected]="isSelected(q, opt)"
-                      (click)="toggle(q, opt)"
+                      [selected]="generated.isSelected(q, opt)"
+                      (click)="generated.toggle(q, opt)"
                     >
                       {{ opt }}
                     </button>
@@ -82,28 +287,28 @@
                   <button
                     type="button"
                     mad-chip
-                    [selected]="isSelected(q, OTHER)"
-                    (click)="toggle(q, OTHER)"
+                    [selected]="generated.isSelected(q, OTHER)"
+                    (click)="generated.toggle(q, OTHER)"
                   >
                     Other&hellip;
                   </button>
                   <button
                     type="button"
                     mad-chip
-                    [selected]="isSelected(q, DECIDE)"
-                    (click)="toggle(q, DECIDE)"
+                    [selected]="generated.isSelected(q, DECIDE)"
+                    (click)="generated.toggle(q, DECIDE)"
                   >
                     Decide for me
                   </button>
                 </div>
-                @if (showOtherInput(q)) {
+                @if (generated.showOtherInput(q)) {
                   <input
                     mad-input
                     type="text"
                     class="mt-2"
                     placeholder="Describe your answer"
-                    [ngModel]="otherText(q)"
-                    (ngModelChange)="setOtherText(q, $any($event))"
+                    [ngModel]="generated.otherText(q)"
+                    (ngModelChange)="generated.setOtherText(q, $any($event))"
                   />
                 }
               }
@@ -111,14 +316,14 @@
                 <div
                   class="flex flex-wrap gap-1.5"
                   role="group"
-                  [attr.aria-labelledby]="'q-' + q.id"
+                  [attr.aria-labelledby]="'g-' + q.id"
                 >
                   @for (opt of q.options; track opt) {
                     <button
                       type="button"
                       mad-chip
-                      [selected]="isSelected(q, opt)"
-                      (click)="toggle(q, opt)"
+                      [selected]="generated.isSelected(q, opt)"
+                      (click)="generated.toggle(q, opt)"
                     >
                       {{ opt }}
                     </button>
@@ -126,28 +331,28 @@
                   <button
                     type="button"
                     mad-chip
-                    [selected]="isSelected(q, OTHER)"
-                    (click)="toggle(q, OTHER)"
+                    [selected]="generated.isSelected(q, OTHER)"
+                    (click)="generated.toggle(q, OTHER)"
                   >
                     Other&hellip;
                   </button>
                   <button
                     type="button"
                     mad-chip
-                    [selected]="isSelected(q, DECIDE)"
-                    (click)="toggle(q, DECIDE)"
+                    [selected]="generated.isSelected(q, DECIDE)"
+                    (click)="generated.toggle(q, DECIDE)"
                   >
                     Decide for me
                   </button>
                 </div>
-                @if (showOtherInput(q)) {
+                @if (generated.showOtherInput(q)) {
                   <input
                     mad-input
                     type="text"
                     class="mt-2"
                     placeholder="Describe your answer"
-                    [ngModel]="otherText(q)"
-                    (ngModelChange)="setOtherText(q, $any($event))"
+                    [ngModel]="generated.otherText(q)"
+                    (ngModelChange)="generated.setOtherText(q, $any($event))"
                   />
                 }
               }
@@ -156,49 +361,16 @@
         </div>
       }
     </section>
+
+    <div class="mt-10 flex items-center justify-end gap-3">
+      <button
+        type="button"
+        mad-button
+        variant="primary"
+        (click)="onSaveAndGenerate()"
+      >
+        Save and Generate
+      </button>
+    </div>
   }
-
-  <section class="mt-10 pt-7 border-t border-border">
-    <h2 class="text-body font-semibold tracking-[-0.005em] m-0">
-      LLM model
-      <span class="text-danger-strong" aria-hidden="true">&nbsp;*</span>
-    </h2>
-    <div class="text-meta text-text-subtle mt-1">
-      Choose the model that will generate the architecture for this project.
-    </div>
-    <div class="flex flex-wrap gap-1.5 mt-3" role="radiogroup" aria-label="LLM model">
-      @for (m of llmModels(); track m.id) {
-        <button
-          type="button"
-          mad-chip
-          [selected]="selectedLlm() === m.id"
-          [attr.aria-checked]="selectedLlm() === m.id"
-          role="radio"
-          (click)="selectedLlm.set(m.id)"
-        >
-          {{ m.name }}
-        </button>
-      }
-      @if (llmModels().length === 0) {
-        <span class="text-meta text-text-subtle">Loading models&hellip;</span>
-      }
-    </div>
-  </section>
-
-  <div class="mt-10 flex items-center justify-end gap-3">
-    @if (!canContinue()) {
-      <span class="text-meta text-text-subtle">
-        Fill in name, description and pick an LLM to continue.
-      </span>
-    }
-    <button
-      type="button"
-      mad-button
-      variant="primary"
-      [disabled]="!canContinue()"
-      (click)="onContinue()"
-    >
-      Continue
-    </button>
-  </div>
 </div>
