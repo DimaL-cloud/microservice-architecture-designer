@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { formatDistanceToNow } from 'date-fns';
@@ -46,6 +47,7 @@ function backendToDesignStatus(s: ProjectResponse['status']): 'ready' | 'gen' | 
 export class ProjectList {
   private readonly projectApi = inject(ProjectApi);
   private readonly llmModelApi = inject(LlmModelApi);
+  private readonly router = inject(Router);
 
   readonly q = signal('');
   readonly filter = signal<FilterKey>('all');
@@ -87,6 +89,6 @@ export class ProjectList {
   }
 
   onNewProject(): void {
-    // intentionally no-op for this iteration
+    this.router.navigate(['/projects/new']);
   }
 }
