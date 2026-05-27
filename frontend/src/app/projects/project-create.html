@@ -40,7 +40,7 @@
                   [id]="'q-' + q.id"
                   [placeholder]="q.placeholder ?? ''"
                   [ngModel]="textValue(q)"
-                  (ngModelChange)="setTextValue(q, $event)"
+                  (ngModelChange)="setTextValue(q, $any($event))"
                 />
               }
               @case ('number') {
@@ -50,7 +50,7 @@
                   [id]="'q-' + q.id"
                   [placeholder]="q.placeholder ?? ''"
                   [ngModel]="textValue(q)"
-                  (ngModelChange)="setTextValue(q, $event)"
+                  (ngModelChange)="setTextValue(q, $any($event))"
                 />
               }
               @case ('longtext') {
@@ -60,7 +60,7 @@
                   class="w-full pl-3 pr-[11px] py-2 rounded-sm border border-border bg-surface text-body text-text outline-none transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent focus:shadow-focus-ring resize-y"
                   [placeholder]="q.placeholder ?? ''"
                   [ngModel]="textValue(q)"
-                  (ngModelChange)="setTextValue(q, $event)"
+                  (ngModelChange)="setTextValue(q, $any($event))"
                 ></textarea>
               }
               @case ('single') {
@@ -103,7 +103,7 @@
                     class="mt-2"
                     placeholder="Describe your answer"
                     [ngModel]="otherText(q)"
-                    (ngModelChange)="setOtherText(q, $event)"
+                    (ngModelChange)="setOtherText(q, $any($event))"
                   />
                 }
               }
@@ -147,7 +147,7 @@
                     class="mt-2"
                     placeholder="Describe your answer"
                     [ngModel]="otherText(q)"
-                    (ngModelChange)="setOtherText(q, $event)"
+                    (ngModelChange)="setOtherText(q, $any($event))"
                   />
                 }
               }
