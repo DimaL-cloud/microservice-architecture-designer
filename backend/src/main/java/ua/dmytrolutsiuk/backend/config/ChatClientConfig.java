@@ -11,11 +11,11 @@ public class ChatClientConfig {
 
     @Bean
     public ChatClient anthropicChatClient(AnthropicChatModel chatModel) {
-        return ChatClient.builder(chatModel).build();
+        return ChatClient.create(chatModel);
     }
 
     @Bean
     public ChatClient openAiChatClient(OpenAiChatModel chatModel) {
-        return ChatClient.builder(chatModel).build();
+        return ChatClient.create(chatModel);
     }
 }
