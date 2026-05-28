@@ -22,11 +22,12 @@ spring:
     serviceclient:
       mermaid-validator:
         base-url: ${MERMAID_VALIDATOR_URL:http://localhost:3000}
-
+  profiles:
+    active: dev
 llm:
   models:
-    - id: claude-opus-4-7
-      name: Claude Opus 4.7
+    - id: claude-opus-4-8
+      name: Claude Opus 4.8
       provider: ANTHROPIC
     - id: claude-sonnet-4-6
       name: Claude Sonnet 4.6
