@@ -22,3 +22,5 @@ After both generation and review steps we should validate mermaid diagrams via m
 Use @backend/src/main/java/ua/dmytrolutsiuk/backend/client/mermaidvalidator/MermaidValidatorClient.java to make requests to mermaid-validator.
 Max amount of attempts to fix Mermaid diagrams should be configurable via application properties, set it to 3 for now.
 If after max attempts diagrams are still invalid, set FAILED status for the project.
+
+Each Markdown prompt should be explored and implemented in separate agent.
