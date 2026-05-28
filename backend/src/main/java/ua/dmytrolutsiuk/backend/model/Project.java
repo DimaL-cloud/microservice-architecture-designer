@@ -14,13 +14,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
-import java.util.Map;
 
 @Entity
 @Table(name = "projects")
@@ -48,10 +45,6 @@ public class Project {
 
     @Column(name = "llm_model_id", nullable = false, length = 64)
     private String llmModelId;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "structured_input", columnDefinition = "jsonb")
-    private Map<String, Object> structuredInput;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

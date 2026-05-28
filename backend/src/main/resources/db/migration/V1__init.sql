@@ -4,7 +4,6 @@ CREATE TABLE projects (
     summary          text,
     status           varchar(20)   NOT NULL,
     llm_model_id     varchar(64)   NOT NULL,
-    structured_input jsonb,
     created_at       timestamptz   NOT NULL,
     CONSTRAINT chk_projects_status CHECK (status IN ('READY', 'GENERATING', 'FAILED'))
 );
