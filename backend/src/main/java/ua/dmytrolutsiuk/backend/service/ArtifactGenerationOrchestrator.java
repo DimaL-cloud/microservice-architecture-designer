@@ -35,8 +35,13 @@ public class ArtifactGenerationOrchestrator {
             ProjectBrief brief = persistenceService.loadBrief(projectId);
             LlmModel model = llmModelProperties.findById(brief.llmModelId());
 
-            ArchitectureBlueprint blueprint = blueprintService.generate(model, brief);
-            persistenceService.saveBlueprint(projectId, blueprint);
+            ArchitectureBlueprint blueprint = persistenceService.loadBlueprint(projectId);
+            if (blueprint == null) {
+                blueprint = blueprintService.generate(model, brief);
+                persistenceService.saveBlueprint(projectId, blueprint);
+            } else {
+                log.info("Reusing persisted blueprint for project {}", projectId);
+            }
 
             ProjectArtifacts artifacts = artifactGenerationService.generateAll(model, blueprint);
             artifacts = artifactReviewService.reviewAll(model, blueprint, artifacts);

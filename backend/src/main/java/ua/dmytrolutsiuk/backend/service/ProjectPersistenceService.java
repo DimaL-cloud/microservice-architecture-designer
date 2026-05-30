@@ -34,6 +34,15 @@ public class ProjectPersistenceService {
         return jsonCodec.read(project.getBrief(), ProjectBrief.class);
     }
 
+    /** Returns the previously generated blueprint, or {@code null} if none has been persisted yet. */
+    @Transactional(readOnly = true)
+    public ArchitectureBlueprint loadBlueprint(Long projectId) {
+        Project project = require(projectId);
+        return project.getBlueprint() == null
+                ? null
+                : jsonCodec.read(project.getBlueprint(), ArchitectureBlueprint.class);
+    }
+
     @Transactional
     public void saveBlueprint(Long projectId, ArchitectureBlueprint blueprint) {
         Project project = require(projectId);
