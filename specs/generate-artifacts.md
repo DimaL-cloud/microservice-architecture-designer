@@ -19,9 +19,7 @@ per artifact. In review step we can't just ask to review and fix - we might not 
 Note that when user clicks 'Save and Generate' button, endpoint should save project to db and start generation. Request should not wait until 
 generation is finished, but should return response after saving project.
 
-On any error during generation, set FAILED status for the project.
-Implement endpoint for restarting generation in case of failure. When generation was failed we should display in questions page
-error message and button to restart generation.
+On any error during generation, set FAILED status for the project. Implement endpoint for restarting generation in case of failure.
 
 After generation run review step. In separate agent explore best practice Markdown prompt to review generated artifacts.
 This step should be done automatically without user involvement. If review step finds issues, it should fix them.
