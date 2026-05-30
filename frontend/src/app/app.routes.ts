@@ -14,7 +14,7 @@ export const routes: Routes = [
   {
     path: 'projects/:id',
     title: 'Project',
-    loadComponent: () => import('./projects/project-create').then(m => m.ProjectCreate)
+    loadComponent: () => import('./projects/project-detail').then(m => m.ProjectDetail)
   },
   { path: '**', redirectTo: '' }
 ];

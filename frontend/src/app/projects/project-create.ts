@@ -1,15 +1,12 @@
-import { Component, DestroyRef, WritableSignal, computed, inject, signal } from '@angular/core';
+import { Component, WritableSignal, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { switchMap, takeWhile, timer } from 'rxjs';
+import { Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 import { Button } from '../shared/ui/button';
 import { Chip } from '../shared/ui/chip';
-import { Icon } from '../shared/ui/icon';
 import { Input } from '../shared/ui/input';
 import { LlmModelApi } from '../llm-models/llm-model-api';
-import { ProjectDetailResponse } from './project';
 import { ProjectApi } from './project-api';
 import {
   Answer,
@@ -28,9 +25,8 @@ import {
 } from './project-question';
 
 const DECIDE_FOR_ME_LABEL = '(decide for me)';
-const STATUS_POLL_INTERVAL_MS = 4000;
 
-type Phase = 'input' | 'questions' | 'status';
+type Phase = 'input' | 'questions';
 
 class AnswerMapController {
   constructor(private readonly answers: WritableSignal<Record<string, Answer>>) {}
@@ -101,25 +97,13 @@ class AnswerMapController {
 @Component({
   selector: 'app-project-create',
   standalone: true,
-  imports: [FormsModule, RouterLink, Button, Chip, Icon, Input],
+  imports: [FormsModule, RouterLink, Button, Chip, Input],
   templateUrl: './project-create.html'
 })
 export class ProjectCreate {
   private readonly llmModelApi = inject(LlmModelApi);
   private readonly projectApi = inject(ProjectApi);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
-
-  constructor() {
-    const idParam = this.route.snapshot.paramMap.get('id');
-    if (idParam) {
-      const id = Number(idParam);
-      this.projectId.set(id);
-      this.phase.set('status');
-      this.pollStatus(id);
-    }
-  }
 
   readonly sections = SECTIONS;
   readonly DECIDE = DECIDE;
@@ -145,12 +129,6 @@ export class ProjectCreate {
   // "Save and Generate" submission state.
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
-
-  // Status phase (reached via /projects/:id, e.g. clicking a failed project card).
-  readonly projectId = signal<number | null>(null);
-  readonly statusProject = signal<ProjectDetailResponse | null>(null);
-  readonly statusLoading = signal(false);
-  readonly statusError = signal<string | null>(null);
 
   readonly canContinue = computed(
     () =>
@@ -245,51 +223,15 @@ export class ProjectCreate {
     };
 
     this.projectApi.saveAndGenerate(request).subscribe({
-      next: () => {
-        // Generation continues in the background; the project list reflects its status.
-        this.router.navigate(['/']);
+      next: project => {
+        // Generation continues in the background; land on the project page to watch it.
+        this.router.navigate(['/projects', project.id]);
       },
       error: () => {
         this.saveError.set('Failed to save project. Please try again.');
         this.saving.set(false);
       }
     });
-  }
-
-  onRestartGeneration(): void {
-    const id = this.projectId();
-    if (id == null || this.statusLoading()) return;
-    this.statusError.set(null);
-    this.projectApi.restartGeneration(id).subscribe({
-      next: project => {
-        this.statusProject.set(project);
-        this.pollStatus(id);
-      },
-      error: () => {
-        this.statusError.set('Failed to restart generation. Please try again.');
-      }
-    });
-  }
-
-  private pollStatus(id: number): void {
-    this.statusLoading.set(true);
-    timer(0, STATUS_POLL_INTERVAL_MS)
-      .pipe(
-        switchMap(() => this.projectApi.get(id)),
-        // keep polling while generating; the inclusive flag emits the final READY/FAILED value too
-        takeWhile(project => project.status === 'GENERATING', true),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: project => {
-          this.statusLoading.set(false);
-          this.statusProject.set(project);
-        },
-        error: () => {
-          this.statusLoading.set(false);
-          this.statusError.set('Could not load project status.');
-        }
-      });
   }
 
   private buildGeneratedAnswers(): StructuredAnswer[] {

@@ -27,6 +27,13 @@
             ],
             "styles": [
               "src/styles.css"
+            ],
+            "allowedCommonJsDependencies": [
+              "jszip",
+              "dayjs",
+              "@braintree/sanitize-url",
+              "cytoscape-fcose",
+              "cytoscape-cose-bilkent"
             ]
           },
           "configurations": {

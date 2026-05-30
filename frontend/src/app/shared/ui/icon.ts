@@ -2,7 +2,17 @@ import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, effect, inject, input } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-export type IconName = 'logo' | 'plus' | 'search' | 'check' | 'alert' | 'model';
+export type IconName =
+  | 'logo'
+  | 'plus'
+  | 'search'
+  | 'check'
+  | 'alert'
+  | 'model'
+  | 'download'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'fit';
 
 @Component({
   selector: 'app-icon',
