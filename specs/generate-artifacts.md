@@ -23,8 +23,8 @@ On any error during generation, set FAILED status for the project.
 Implement endpoint for restarting generation in case of failure. When generation was failed we should display in questions page
 error message and button to restart generation.
 
-After generation run review step. In separate agent explore best practice Markdown prompt to review generated artifacts and fix issues.
-This step should be done automatically without user involvement. If review step finds issues, it should fix them and run validation again until all artifacts are correct.
+After generation run review step. In separate agent explore best practice Markdown prompt to review generated artifacts.
+This step should be done automatically without user involvement. If review step finds issues, it should fix them.
 
 After both generation and review steps we should validate mermaid diagrams via mermaid-validator microservice and start repair loop.
 Use @backend/src/main/java/ua/dmytrolutsiuk/backend/client/mermaidvalidator/MermaidValidatorClient.java to make requests to mermaid-validator.
