@@ -74,7 +74,7 @@ function clamp(value: number, min: number, max: number): number {
 
       <div
         #viewport
-        class="relative overflow-hidden touch-none h-[clamp(360px,60vh,720px)] rounded-md border border-border bg-surface-inset cursor-grab"
+        class="relative overflow-hidden touch-none h-[clamp(460px,80vh,1040px)] rounded-md border border-border bg-surface-inset cursor-grab"
       >
         <div #inner class="absolute top-0 left-0 will-change-transform"></div>
       </div>
