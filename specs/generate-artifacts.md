@@ -13,7 +13,7 @@ Following artifacts should be generated:
 
 About orchestration of artifacts generation. We can't generate all artifacts in one LLM call. Each LLM has max output tokens per request (64000, 128000 tokens depending on model).
 Explore best pratice how we should orchestrate artifacts generation in separate agent. Generated artifacts should be consistent between each
-other. Also we should generate multiple ADRs and multiple sequence diagrams which can't be done in one LLM call. We should do one LLM call
+other, so they should be generated in coordinated manner. Also we should generate multiple ADRs and multiple sequence diagrams which can't be done in one LLM call. We should do one LLM call
 per artifact. In review step we can't just ask to review and fix - we might not fit in max tokens output, so discover how to orcestrate review step too.
 
 Note that when user clicks 'Save and Generate' button, endpoint should save project to db and start generation. Request should not wait until 
