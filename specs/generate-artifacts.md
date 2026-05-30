@@ -1,7 +1,7 @@
 Read @specs/MVP.md @specs/structured-input.md @specs/questions.md.
 New project page and questions page are already implemented. We need to implement artifact generation based on the project information, 
 requirements and answered questions user provided.
-'Save and Generate' button as for now does nothing. We need to implement backend endpoint to receive all the information, save project and
+'Save and Generate' button as for now does nothing. We need to implement backend to receive all the information, save project and
 start artifacts generation.
 Do not implement display of generated artifacts on frontend, only generation and sending to frontend.
 Following artifacts should be generated:
