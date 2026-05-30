@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -45,6 +47,34 @@ public class Project {
 
     @Column(name = "llm_model_id", nullable = false, length = 64)
     private String llmModelId;
+
+    /**
+     * The full intake the user provided (project info + structured answers + follow-up answers),
+     * stored as raw JSON. Persisted so generation can be restarted without re-asking the user.
+     * (De)serialized in the service layer; stored in a jsonb column.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String brief;
+
+    /**
+     * Canonical architecture model (raw JSON) produced by the first LLM call; every artifact is
+     * grounded on it so the artifacts stay mutually consistent.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String blueprint;
+
+    /**
+     * The generated artifacts (raw JSON: diagrams, SDD, ADRs, sequence diagrams).
+     * Null until generation succeeds.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String artifacts;
+
+    @Column(name = "generation_error", columnDefinition = "text")
+    private String generationError;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

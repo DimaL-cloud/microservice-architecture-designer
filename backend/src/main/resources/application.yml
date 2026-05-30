@@ -19,6 +19,9 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:dummy}
   http:
+    client:
+      connect-timeout: 10s
+      read-timeout: 60s
     serviceclient:
       mermaid-validator:
         base-url: ${MERMAID_VALIDATOR_URL:http://localhost:3000}
@@ -41,3 +44,19 @@ llm:
     - id: gpt-5.4-mini
       name: GPT-5.4 Mini
       provider: OPENAI
+generation:
+  # Max attempts to repair an invalid Mermaid diagram before failing the project.
+  mermaid-repair-max-attempts: 3
+  # Max concurrent per-artifact LLM calls. Keep low on constrained API tiers (per-minute token
+  # limits); raise it when the account allows more throughput.
+  concurrency: 1
+  # Upper bounds on generated ADRs / sequence diagrams (one per blueprint decision / key flow).
+  max-adrs: 8
+  max-flows: 6
+  # Per-artifact output-token caps.
+  max-tokens:
+    summary: 512
+    blueprint: 8000
+    sdd: 16000
+    diagram: 8000
+    adr: 6000

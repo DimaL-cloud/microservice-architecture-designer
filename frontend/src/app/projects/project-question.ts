@@ -24,3 +24,10 @@ export interface GenerateQuestionsRequest {
   llmModelId: string;
   answers: StructuredAnswer[];
 }
+
+export interface SaveAndGenerateRequest {
+  name: string;
+  description: string;
+  llmModelId: string;
+  answers: StructuredAnswer[];
+}

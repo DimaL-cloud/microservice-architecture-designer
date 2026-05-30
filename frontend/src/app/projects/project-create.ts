@@ -1,12 +1,15 @@
-import { Component, WritableSignal, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, WritableSignal, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { switchMap, takeWhile, timer } from 'rxjs';
 
 import { Button } from '../shared/ui/button';
 import { Chip } from '../shared/ui/chip';
+import { Icon } from '../shared/ui/icon';
 import { Input } from '../shared/ui/input';
 import { LlmModelApi } from '../llm-models/llm-model-api';
+import { ProjectDetailResponse } from './project';
 import { ProjectApi } from './project-api';
 import {
   Answer,
@@ -20,12 +23,14 @@ import {
 import {
   GenerateQuestionsRequest,
   GeneratedQuestion,
+  SaveAndGenerateRequest,
   StructuredAnswer
 } from './project-question';
 
 const DECIDE_FOR_ME_LABEL = '(decide for me)';
+const STATUS_POLL_INTERVAL_MS = 4000;
 
-type Phase = 'input' | 'questions';
+type Phase = 'input' | 'questions' | 'status';
 
 class AnswerMapController {
   constructor(private readonly answers: WritableSignal<Record<string, Answer>>) {}
@@ -96,12 +101,25 @@ class AnswerMapController {
 @Component({
   selector: 'app-project-create',
   standalone: true,
-  imports: [FormsModule, RouterLink, Button, Chip, Input],
+  imports: [FormsModule, RouterLink, Button, Chip, Icon, Input],
   templateUrl: './project-create.html'
 })
 export class ProjectCreate {
   private readonly llmModelApi = inject(LlmModelApi);
   private readonly projectApi = inject(ProjectApi);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      const id = Number(idParam);
+      this.projectId.set(id);
+      this.phase.set('status');
+      this.pollStatus(id);
+    }
+  }
 
   readonly sections = SECTIONS;
   readonly DECIDE = DECIDE;
@@ -123,6 +141,16 @@ export class ProjectCreate {
   readonly generating = signal(false);
   readonly generationError = signal<string | null>(null);
   readonly generatedQuestions = signal<Question[]>([]);
+
+  // "Save and Generate" submission state.
+  readonly saving = signal(false);
+  readonly saveError = signal<string | null>(null);
+
+  // Status phase (reached via /projects/:id, e.g. clicking a failed project card).
+  readonly projectId = signal<number | null>(null);
+  readonly statusProject = signal<ProjectDetailResponse | null>(null);
+  readonly statusLoading = signal(false);
+  readonly statusError = signal<string | null>(null);
 
   readonly canContinue = computed(
     () =>
@@ -203,7 +231,100 @@ export class ProjectCreate {
   }
 
   onSaveAndGenerate(): void {
-    // intentionally no-op for this iteration
+    const llmModelId = this.selectedLlm();
+    if (!llmModelId || this.saving()) return;
+
+    this.saving.set(true);
+    this.saveError.set(null);
+
+    const request: SaveAndGenerateRequest = {
+      name: this.projectName().trim(),
+      description: this.description().trim(),
+      llmModelId,
+      answers: [...this.buildStructuredAnswers(), ...this.buildGeneratedAnswers()]
+    };
+
+    this.projectApi.saveAndGenerate(request).subscribe({
+      next: () => {
+        // Generation continues in the background; the project list reflects its status.
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        this.saveError.set('Failed to save project. Please try again.');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  onRestartGeneration(): void {
+    const id = this.projectId();
+    if (id == null || this.statusLoading()) return;
+    this.statusError.set(null);
+    this.projectApi.restartGeneration(id).subscribe({
+      next: project => {
+        this.statusProject.set(project);
+        this.pollStatus(id);
+      },
+      error: () => {
+        this.statusError.set('Failed to restart generation. Please try again.');
+      }
+    });
+  }
+
+  private pollStatus(id: number): void {
+    this.statusLoading.set(true);
+    timer(0, STATUS_POLL_INTERVAL_MS)
+      .pipe(
+        switchMap(() => this.projectApi.get(id)),
+        // keep polling while generating; the inclusive flag emits the final READY/FAILED value too
+        takeWhile(project => project.status === 'GENERATING', true),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: project => {
+          this.statusLoading.set(false);
+          this.statusProject.set(project);
+        },
+        error: () => {
+          this.statusLoading.set(false);
+          this.statusError.set('Could not load project status.');
+        }
+      });
+  }
+
+  private buildGeneratedAnswers(): StructuredAnswer[] {
+    const result: StructuredAnswer[] = [];
+    const answersById = this.generatedAnswers();
+    for (const q of this.generatedQuestions()) {
+      const a = answersById[q.id];
+      if (!a) continue;
+      if (a.kind === 'text') {
+        const trimmed = a.value.trim();
+        if (trimmed.length > 0) {
+          result.push({ id: q.id, label: q.label, value: trimmed });
+        }
+        continue;
+      }
+      if (a.kind === 'single') {
+        if (a.selected === '') continue;
+        const resolved = this.resolveOption(a.selected, a.otherText);
+        if (resolved === null) continue;
+        result.push({ id: q.id, label: q.label, value: resolved });
+        continue;
+      }
+      if (a.kind === 'multi') {
+        if (a.selected.length === 0) continue;
+        const values: string[] = [];
+        for (const opt of a.selected) {
+          const resolved = this.resolveOption(opt, a.otherText);
+          if (resolved !== null) values.push(resolved);
+        }
+        if (values.length > 0) {
+          result.push({ id: q.id, label: q.label, value: values });
+        }
+      }
+    }
+    return result;
   }
 
   private buildStructuredAnswers(): StructuredAnswer[] {
