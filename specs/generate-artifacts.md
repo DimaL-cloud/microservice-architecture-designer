@@ -16,6 +16,9 @@ Explore best pratice how we should orchestrate artifacts generation in separate 
 other. Also we should generate multiple ADRs and multiple sequence diagrams which can't be done in one LLM call. We should do one LLM call
 per artifact. In review step we can't just ask to review and fix - we might not fit in max tokens output, so discover how to orcestrate review step too.
 
+Note that when user clicks 'Save and Generate' button, endpoint should save project to db and start generation. Request should not wait until 
+generation is finished, but should return response after saving project.
+
 On any error during generation, set FAILED status for the project.
 Implement endpoint for restarting generation in case of failure. When generation was failed we should display in questions page
 error message and button to restart generation.
