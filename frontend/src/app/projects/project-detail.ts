@@ -62,7 +62,6 @@ export class ProjectDetail {
   readonly selectedAdr = signal(0);
   readonly selectedSeq = signal(0);
   readonly toc = signal<TocEntry[]>([]);
-  readonly activeHeading = signal<string | null>(null);
 
   readonly modelNames = toSignal(this.llmModelApi.namesById(), {
     initialValue: new Map<string, string>()
@@ -72,7 +71,6 @@ export class ProjectDetail {
 
   private readonly sddContent = viewChild<ElementRef<HTMLElement>>('sddContent');
   private projectId: number | null = null;
-  private headingObserver: IntersectionObserver | null = null;
 
   constructor() {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -81,7 +79,6 @@ export class ProjectDetail {
       this.projectId = id;
       this.pollStatus(id);
     }
-    this.destroyRef.onDestroy(() => this.headingObserver?.disconnect());
   }
 
   modelName(id: string): string {
@@ -129,47 +126,10 @@ export class ProjectDetail {
       entries.push({ level: Number(heading.tagName.substring(1)), text, id });
     }
     this.toc.set(entries);
-    this.activeHeading.set(entries[0]?.id ?? null);
-    this.observeHeadings(headings.filter(h => h.id));
   }
 
   scrollToHeading(id: string): void {
-    this.activeHeading.set(id);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  /** Classes for a Table-of-Contents entry, highlighting the section in view. */
-  tocItemClass(id: string): string {
-    const base =
-      'block w-full text-left text-meta py-1 truncate cursor-pointer bg-transparent ' +
-      'border-y-0 border-r-0 border-l-2 transition-colors ';
-    return (
-      base +
-      (this.activeHeading() === id
-        ? 'border-l-accent text-accent-strong font-medium'
-        : 'border-l-transparent text-text-subtle hover:text-text-body')
-    );
-  }
-
-  /** Scrollspy: highlight the TOC entry whose section is near the top of the viewport. */
-  private observeHeadings(headings: HTMLElement[]): void {
-    this.headingObserver?.disconnect();
-    if (!headings.length) return;
-    const order = headings.map(h => h.id);
-    const visible = new Set<string>();
-    this.headingObserver = new IntersectionObserver(
-      changes => {
-        for (const change of changes) {
-          const id = (change.target as HTMLElement).id;
-          if (change.isIntersecting) visible.add(id);
-          else visible.delete(id);
-        }
-        const active = order.find(id => visible.has(id));
-        if (active) this.activeHeading.set(active);
-      },
-      { root: null, rootMargin: '-80px 0px -55% 0px', threshold: 0 }
-    );
-    for (const heading of headings) this.headingObserver.observe(heading);
   }
 
   async onExportAll(): Promise<void> {

@@ -115,8 +115,8 @@
                           <li>
                             <button
                               type="button"
-                              [class]="tocItemClass(item.id)"
-                              [style.paddingLeft.px]="(item.level - 1) * 10 + 10"
+                              class="block w-full text-left text-meta text-text-subtle hover:text-text-body py-0.5 truncate cursor-pointer bg-transparent border-0"
+                              [style.paddingLeft.px]="(item.level - 1) * 10"
                               (click)="scrollToHeading(item.id)"
                             >
                               {{ item.text }}
