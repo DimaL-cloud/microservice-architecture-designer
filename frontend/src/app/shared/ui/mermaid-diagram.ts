@@ -28,7 +28,18 @@ function ensureMermaid(): Promise<typeof import('mermaid').default> {
         startOnLoad: false,
         securityLevel: 'loose',
         theme: 'neutral',
-        suppressErrorRendering: true
+        suppressErrorRendering: true,
+        // C4 diagrams use Mermaid's experimental grid layout; these give the
+        // boxes and relationship labels more breathing room so dense container
+        // diagrams are less cramped (it cannot remove edge crossings — that is
+        // a limitation of the C4 renderer itself).
+        c4: {
+          c4ShapeInRow: 3,
+          c4BoundaryInRow: 1,
+          diagramMarginX: 60,
+          diagramMarginY: 60,
+          c4ShapeMargin: 70
+        }
       });
       return module.default;
     });
