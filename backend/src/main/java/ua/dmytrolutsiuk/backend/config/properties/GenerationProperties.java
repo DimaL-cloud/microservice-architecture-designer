@@ -27,7 +27,7 @@ public record GenerationProperties(
     /** Per-artifact output-token caps. SDD is the largest; the brief summary the smallest. */
     public record MaxTokens(
             @DefaultValue("512") int summary,
-            @DefaultValue("8000") int blueprint,
+            @DefaultValue("32000") int blueprint,
             @DefaultValue("16000") int sdd,
             @DefaultValue("8000") int diagram,
             @DefaultValue("6000") int adr
