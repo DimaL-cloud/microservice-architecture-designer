@@ -11,11 +11,19 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Generates the one/two-sentence project summary shown on the project-list card. Called
- * synchronously when the user clicks "Save and Generate" so the summary is present immediately.
+ * Generates the one/two-sentence project summary shown on the project-list card. Called on the
+ * background generation thread (see {@link ArtifactGenerationOrchestrator}); until it completes a
+ * placeholder summary set at save time is shown.
  */
 @Service
 public class ProjectSummaryService {
+
+    /**
+     * Placeholder summary persisted at save time and shown on the project-list card until this
+     * service produces the real one. The orchestrator treats it as "no real summary yet" (so it
+     * regenerates rather than reuses) and recovery clears it when failing an orphaned project.
+     */
+    public static final String PLACEHOLDER = "Generating summary…";
 
     private final LlmChatService llmChatService;
     private final JsonCodec jsonCodec;

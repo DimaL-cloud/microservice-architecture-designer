@@ -38,6 +38,9 @@ public class GenerationRecoveryListener {
         for (Project project : orphaned) {
             project.setStatus(ProjectStatus.FAILED);
             project.setGenerationError(INTERRUPTED_MESSAGE);
+            if (ProjectSummaryService.PLACEHOLDER.equals(project.getSummary())) {
+                project.setSummary(null);
+            }
         }
         projectRepository.saveAll(orphaned);
     }

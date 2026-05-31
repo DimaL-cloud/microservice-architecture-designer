@@ -34,6 +34,12 @@ public class ProjectPersistenceService {
         return jsonCodec.read(project.getBrief(), ProjectBrief.class);
     }
 
+    /** Returns the project's current summary (may be the placeholder, the real one, or {@code null}). */
+    @Transactional(readOnly = true)
+    public String loadSummary(Long projectId) {
+        return require(projectId).getSummary();
+    }
+
     /** Returns the previously generated blueprint, or {@code null} if none has been persisted yet. */
     @Transactional(readOnly = true)
     public ArchitectureBlueprint loadBlueprint(Long projectId) {
@@ -47,6 +53,17 @@ public class ProjectPersistenceService {
     public void saveBlueprint(Long projectId, ArchitectureBlueprint blueprint) {
         Project project = require(projectId);
         project.setBlueprint(jsonCodec.write(blueprint));
+        projectRepository.save(project);
+    }
+
+    /**
+     * Replaces the placeholder summary set at save time with the asynchronously generated one
+     * (or {@code null} when summarization failed). Does not touch generation status.
+     */
+    @Transactional
+    public void saveSummary(Long projectId, String summary) {
+        Project project = require(projectId);
+        project.setSummary(summary);
         projectRepository.save(project);
     }
 

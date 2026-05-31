@@ -23,6 +23,7 @@ public class ArtifactGenerationOrchestrator {
 
     private final ProjectPersistenceService persistenceService;
     private final LlmModelProperties llmModelProperties;
+    private final ProjectSummaryService projectSummaryService;
     private final BlueprintService blueprintService;
     private final ArtifactGenerationService artifactGenerationService;
     private final ArtifactReviewService artifactReviewService;
@@ -34,6 +35,11 @@ public class ArtifactGenerationOrchestrator {
         try {
             ProjectBrief brief = persistenceService.loadBrief(projectId);
             LlmModel model = llmModelProperties.findById(brief.llmModelId());
+
+            // Best-effort: generate the project-list summary first so the card updates quickly.
+            // A failure here must not fail the whole project, so it is contained. Reuses an
+            // already-generated summary on restart (like the blueprint below).
+            generateSummary(projectId, model, brief);
 
             ArchitectureBlueprint blueprint = persistenceService.loadBlueprint(projectId);
             if (blueprint == null) {
@@ -56,6 +62,35 @@ public class ArtifactGenerationOrchestrator {
             } catch (Exception markFailure) {
                 log.error("Could not mark project {} as FAILED", projectId, markFailure);
             }
+        }
+    }
+
+    /**
+     * Generates the project-list summary and persists it, replacing the placeholder set at save
+     * time. Reuses an already-generated summary on restart (a real, non-placeholder value is kept
+     * untouched) so a transient summary blip cannot blank a good summary. Entirely best-effort:
+     * any failure (LLM or persistence) is logged and swallowed so it cannot fail artifact
+     * generation. When there is only a placeholder/null and summarization fails, the value is
+     * cleared to {@code null} so the card does not show a stale "generating" message.
+     */
+    private void generateSummary(Long projectId, LlmModel model, ProjectBrief brief) {
+        String existing = persistenceService.loadSummary(projectId);
+        if (existing != null && !existing.equals(ProjectSummaryService.PLACEHOLDER)) {
+            log.info("Reusing persisted summary for project {}", projectId);
+            return;
+        }
+        String summary;
+        try {
+            summary = projectSummaryService.summarize(model, brief);
+        } catch (Exception e) {
+            log.warn("Summary generation failed for project {}; clearing placeholder summary: {}",
+                    projectId, e.getMessage());
+            summary = null;
+        }
+        try {
+            persistenceService.saveSummary(projectId, summary);
+        } catch (Exception e) {
+            log.warn("Could not persist summary for project {}", projectId, e);
         }
     }
 }

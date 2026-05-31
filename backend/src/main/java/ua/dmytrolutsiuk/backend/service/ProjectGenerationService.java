@@ -1,12 +1,10 @@
 package ua.dmytrolutsiuk.backend.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import ua.dmytrolutsiuk.backend.config.properties.LlmModelProperties;
-import ua.dmytrolutsiuk.backend.model.LlmModel;
 import ua.dmytrolutsiuk.backend.model.Project;
 import ua.dmytrolutsiuk.backend.model.ProjectBrief;
 import ua.dmytrolutsiuk.backend.model.ProjectStatus;
@@ -17,27 +15,28 @@ import java.util.List;
 
 /**
  * Entry point for "Save and Generate" and "Restart generation". Saves the project synchronously
- * (including a freshly generated summary) and then kicks off the async artifact-generation
- * pipeline, returning immediately without waiting for generation to finish.
+ * with a placeholder summary and {@code GENERATING} status, then kicks off the async
+ * artifact-generation pipeline (which also generates the real summary), returning immediately
+ * without waiting for generation to finish.
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ProjectGenerationService {
 
     private final ProjectRepository projectRepository;
     private final LlmModelProperties llmModelProperties;
     private final JsonCodec jsonCodec;
-    private final ProjectSummaryService projectSummaryService;
     private final ArtifactGenerationOrchestrator orchestrator;
 
     /**
-     * Saves the project with a generated summary and {@code GENERATING} status, then starts async
-     * generation. The summary is generated inline so the project-list card shows it immediately;
-     * if summarization fails it is left empty and generation still proceeds.
+     * Saves the project with a placeholder summary and {@code GENERATING} status, then starts async
+     * generation. The real summary is generated on the background thread and replaces the
+     * placeholder once ready (see {@link ArtifactGenerationOrchestrator}).
      */
     public Project saveAndGenerate(SaveAndGenerateRequest request) {
-        LlmModel model = llmModelProperties.findById(request.llmModelId());
+        // Validate the model id eagerly so an unknown id fails fast at save time rather than
+        // surfacing only after the project has been persisted as GENERATING.
+        llmModelProperties.findById(request.llmModelId());
         ProjectBrief brief = new ProjectBrief(
                 request.name(),
                 request.description(),
@@ -45,11 +44,9 @@ public class ProjectGenerationService {
                 request.answers() == null ? List.of() : request.answers()
         );
 
-        String summary = generateSummary(model, brief);
-
         Project project = Project.builder()
                 .name(request.name())
-                .summary(summary)
+                .summary(ProjectSummaryService.PLACEHOLDER)
                 .status(ProjectStatus.GENERATING)
                 .llmModelId(request.llmModelId())
                 .brief(jsonCodec.write(brief))
@@ -78,15 +75,5 @@ public class ProjectGenerationService {
 
         orchestrator.generate(saved.getId());
         return saved;
-    }
-
-    private String generateSummary(LlmModel model, ProjectBrief brief) {
-        try {
-            return projectSummaryService.summarize(model, brief);
-        } catch (Exception e) {
-            log.warn("Summary generation failed for project '{}'; saving without a summary: {}",
-                    brief.name(), e.getMessage());
-            return null;
-        }
     }
 }
