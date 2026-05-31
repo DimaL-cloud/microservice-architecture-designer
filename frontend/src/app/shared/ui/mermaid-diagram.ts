@@ -23,26 +23,23 @@ let mermaidReady: Promise<typeof import('mermaid').default> | null = null;
 /** Loads + initializes mermaid exactly once, then reuses the instance. */
 function ensureMermaid(): Promise<typeof import('mermaid').default> {
   if (!mermaidReady) {
-    mermaidReady = import('mermaid').then(module => {
-      module.default.initialize({
-        startOnLoad: false,
-        securityLevel: 'loose',
-        theme: 'neutral',
-        suppressErrorRendering: true,
-        // C4 diagrams use Mermaid's experimental grid layout; these give the
-        // boxes and relationship labels more breathing room so dense container
-        // diagrams are less cramped (it cannot remove edge crossings — that is
-        // a limitation of the C4 renderer itself).
-        c4: {
-          c4ShapeInRow: 3,
-          c4BoundaryInRow: 1,
-          diagramMarginX: 60,
-          diagramMarginY: 60,
-          c4ShapeMargin: 70
-        }
-      });
-      return module.default;
-    });
+    // Load mermaid plus the ELK layout engine. The C4 diagrams are emitted as
+    // flowcharts that request `layout: elk`, which does proper hierarchical
+    // layout with crossing minimization and orthogonal edge routing — far
+    // cleaner than mermaid's native (dagre) flowchart layout for dense graphs.
+    mermaidReady = Promise.all([import('mermaid'), import('@mermaid-js/layout-elk')]).then(
+      ([mermaidModule, elkModule]) => {
+        const mermaid = mermaidModule.default;
+        mermaid.registerLayoutLoaders(elkModule.default);
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'loose',
+          theme: 'neutral',
+          suppressErrorRendering: true
+        });
+        return mermaid;
+      }
+    );
   }
   return mermaidReady;
 }

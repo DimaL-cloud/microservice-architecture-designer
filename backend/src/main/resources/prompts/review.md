@@ -62,7 +62,7 @@ The `type` attribute names the artifact and dictates its required format:
 Apply every item. Blueprint wins every conflict.
 
 1. Format correctness.
-   - Diagrams (`C4_CONTEXT`, `C4_CONTAINER`, `SEQUENCE_DIAGRAM`): MUST be syntactically valid Mermaid v11 that passes `mermaid.parse()`. Correct the diagram keyword, element/relationship syntax, balanced `{ }` boundaries, quoting, and arrow operators. Remove any non-Mermaid lines.
+   - Diagrams (`C4_CONTEXT`, `C4_CONTAINER`, `SEQUENCE_DIAGRAM`): MUST be syntactically valid Mermaid v11 that passes `mermaid.parse()`. Correct the diagram keyword/frontmatter, element/edge syntax, balanced shape brackets and `subgraph`/`end` blocks, quoting, and arrow/edge operators. Remove any non-Mermaid lines.
    - `SDD` / `ADR`: MUST be coherent, well-structured Markdown with a sane heading hierarchy and no broken syntax.
 2. Consistency with the blueprint (fix all drift toward the blueprint).
    - `systemName` must match the blueprint exactly wherever the system is named (diagram `title`, document title, prose).
@@ -76,7 +76,7 @@ Apply every item. Blueprint wins every conflict.
    - Diagrams must include every element they are responsible for (all actors + the system in C4_CONTEXT; all containers + relevant actors in C4_CONTAINER; all participants in SEQUENCE_DIAGRAM).
    - Do NOT invent containers, actors, relationships, decisions, flows, technologies, or protocols that are absent from the blueprint. If the artifact added something the blueprint does not contain, remove it.
 4. Structure and type preservation.
-   - Keep the artifact's type and overall structure. A C4_CONTAINER stays a `C4Container`; an ADR stays an ADR with its standard sections. Never convert one artifact type into another.
+   - Keep the artifact's type and overall structure. A C4_CONTAINER stays a flowchart C4 container diagram (frontmatter + `flowchart`); an ADR stays an ADR with its standard sections. Never convert one artifact type into another.
    - Preserve the existing section order and headings of SDD/ADR when they are valid; only repair what is wrong.
 
 ## Output format
@@ -96,14 +96,15 @@ If, after the review, no changes are warranted, return the original artifact unc
 - Use exactly the ids, names, technologies, labels, and protocols from the blueprint. Do not paraphrase identifiers.
 - Never add elements (actors, containers, relationships, decisions, flows) that are not in the blueprint, and never drop elements the artifact is responsible for representing.
 - Mermaid v11 specifics:
-  - C4 diagrams use the PlantUML-style C4 macros. Map blueprint elements to macros:
-    - actor `type: "PERSON"` -> `Person(id, "Name", "description")`; external person if applicable.
-    - actor `type: "EXTERNAL_SYSTEM"` -> `System_Ext(id, "Name", "description")` (use `SystemDb_Ext` / `SystemQueue_Ext` only if the blueprint clearly marks it as such).
-    - In `C4_CONTEXT`, the system itself is `System(id, "systemName", "...")`, optionally wrapped in `System_Boundary` / `Enterprise_Boundary(id, "label") { ... }`.
-    - In `C4_CONTAINER`, wrap internal containers in `Container_Boundary(id, "systemName") { ... }`. Map container `kind`: `SERVICE`/`GATEWAY`/`OTHER` -> `Container(id, "Name", "technology", "responsibility")`; `DATABASE` -> `ContainerDb(...)`; `CACHE` -> `ContainerDb(...)`; `QUEUE` -> `ContainerQueue(...)`. External systems/actors stay outside the boundary.
-    - relationships -> `Rel(fromId, toId, "label", "protocol")`; use `BiRel(...)` only for genuinely bidirectional links. Every `Rel`/`BiRel` argument is quoted except the ids.
-    - Every C4 element id used in a `Rel`/`BiRel` MUST be declared earlier in the diagram. Ids must be valid Mermaid identifiers (letters, digits, underscores) — sanitize blueprint ids that contain hyphens or dots by replacing them with underscores, consistently across declarations and relationships.
-    - Keep `title` set to the blueprint `systemName`.
+  - C4 diagrams (`C4_CONTEXT`, `C4_CONTAINER`) are Mermaid `flowchart` diagrams (NOT the native C4 macros) and MUST keep that form. Each opens with a frontmatter block — `---`, a `title:` line, `config:` / `  layout: elk`, `---` — then `flowchart TB`. Never convert them to `C4Context`/`C4Container` macros, and never drop the frontmatter or the `layout: elk` config.
+    - Node ids are bare tokens of letters, digits, and underscores, derived from blueprint ids by replacing every non-alphanumeric run with `_` (e.g. `order-svc` -> `order_svc`), used consistently in declarations and edges.
+    - Map each element to a shaped, classed node: actor `PERSON` -> `id(["Name<br/>[Person]<br/>desc"]):::person`; actor `EXTERNAL_SYSTEM` -> `id["Name<br/>[External System]<br/>desc"]:::external`.
+    - In `C4_CONTEXT`, the whole system is ONE node `id["systemName<br/>[Software System]<br/>desc"]:::system` and NO containers are drawn.
+    - In `C4_CONTAINER`, containers sit inside `subgraph systemBoundary["systemName"]` … `end`, mapped by `kind`: `SERVICE`/`GATEWAY`/`OTHER` -> `id["Name<br/>[technology]<br/>desc"]:::container`; `DATABASE`/`CACHE` -> `id[("Name<br/>[technology]<br/>desc")]:::containerDb`; `QUEUE` -> `id{{"Name<br/>[technology]<br/>desc"}}:::containerQueue`. Actors stay outside the subgraph.
+    - The third node line `desc` is a DELIBERATELY CONDENSED summary (≤ ~8 words, no full sentence/period/semicolon), NOT the blueprint's verbatim `responsibility`/`description`/`systemOverview`. Do NOT treat a short, accurate description as drift and do NOT re-expand it to the full blueprint text — that detail belongs in the SDD. Only fix a `desc` that is wrong (contradicts the blueprint), missing when source text exists, or so long it breaks the layout; when shortening, keep it to the element's primary role.
+    - relationships -> edges `fromId -->|"label<br/>[protocol]"| toId` (omit `<br/>[protocol]` when there is no protocol). In `C4_CONTEXT`, replace any container endpoint with the system node and drop container↔container relationships.
+    - Every id used in an edge MUST be declared earlier as a node. Keep the styling lines (`classDef` for person/external/container/containerDb/containerQueue/system, plus `style systemBoundary …` in the container diagram) and keep the frontmatter `title` set to the blueprint `systemName`.
+    - All node/edge label text is wrapped in double quotes; inside it use `'` instead of `"`, `/` instead of `|`, and `<br/>` for line breaks.
   - `sequenceDiagram`: declare each participant with `participant <id> as <Name>` (one per `keyFlow.participantIds`, resolving id -> blueprint name), then emit messages following `keyFlow.steps`. Use `->>` for synchronous calls/requests and `-->>` for responses/returns. Group with `alt`/`else`/`end`, `opt`/`end`, `loop`/`end`, and `par`/`and`/`end` only when the steps clearly describe them, and always close each block with `end`. Use `Note over <id>: ...` for annotations. Never reference a participant that was not declared.
   - Quote any label, name, or description containing spaces, commas, parentheses, or special characters. Replace raw newlines inside a quoted string with `<br/>`.
 - ADR sections (preserve when valid, repair when broken): `# <decision id>: <title>`, `## Status`, `## Context`, `## Decision`, `## Alternatives Considered`, `## Consequences`. Each maps to the corresponding blueprint `decisions` field and must not contradict it.
@@ -135,35 +136,57 @@ If, after the review, no changes are warranted, return the original artifact unc
 }
 </architecture_blueprint>
 <artifact type="C4_CONTAINER">
-C4Container
-    title Container diagram for Shopflow
+---
+title: Container diagram for Shopflow
+config:
+  layout: elk
+---
+flowchart TB
+    shopper(["Shopper<br/>[Person]<br/>Buys products."]):::person
+    stripe["Stripe<br/>[External System]<br/>Payment provider."]:::external
 
-    Person(shopper, "Shopper", "Buys products.")
-    System_Ext(stripe, "Stripe", "Payment provider.")
+    subgraph systemBoundary["Shopflow"]
+        direction TB
+        checkout_svc["Checkout Service<br/>[Java, Spring Boot]<br/>Orchestrates checkout."]:::container
+        orders_db[("Orders Database<br/>[MySQL]<br/>Stores orders.")]:::containerDb
+    end
 
-    Container_Boundary(c1, "Shopflow") {
-        Container(checkout_svc, "Checkout Service", "Java, Spring Boot", "Orchestrates checkout.")
-        ContainerDb(orders_db, "Orders Database", "MySQL", "Stores orders.")
-    }
+    shopper -->|"Places order<br/>[HTTPS]"| checkout_svc
+    checkout_svc -->|"Reads/writes orders<br/>[JDBC]"| orders_db
 
-    Rel(shopper, checkout_svc, "Places order", "HTTPS")
-    Rel(checkout_svc, orders_db, "Reads/writes orders", "JDBC")
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#ffffff
+    classDef container fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerDb fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerQueue fill:#1168bd,stroke:#0b4884,color:#ffffff
+    style systemBoundary fill:none,stroke:#9aa4b2,stroke-width:1px,color:#5b6472
 </artifact>
 <output>
-C4Container
-    title Container diagram for ShopFlow
+---
+title: Container diagram for ShopFlow
+config:
+  layout: elk
+---
+flowchart TB
+    shopper(["Shopper<br/>[Person]<br/>Buys products."]):::person
+    stripe["Stripe<br/>[External System]<br/>Payment provider."]:::external
 
-    Person(shopper, "Shopper", "Buys products.")
-    System_Ext(stripe, "Stripe", "Payment provider.")
+    subgraph systemBoundary["ShopFlow"]
+        direction TB
+        checkout_svc["Checkout Service<br/>[Java, Spring Boot]<br/>Orchestrates checkout."]:::container
+        orders_db[("Orders DB<br/>[PostgreSQL]<br/>Stores orders.")]:::containerDb
+    end
 
-    Container_Boundary(c1, "ShopFlow") {
-        Container(checkout_svc, "Checkout Service", "Java, Spring Boot", "Orchestrates checkout.")
-        ContainerDb(orders_db, "Orders DB", "PostgreSQL", "Stores orders.")
-    }
+    shopper -->|"Places order<br/>[HTTPS]"| checkout_svc
+    checkout_svc -->|"Reads/writes orders<br/>[JDBC]"| orders_db
+    checkout_svc -->|"Charges card<br/>[HTTPS]"| stripe
 
-    Rel(shopper, checkout_svc, "Places order", "HTTPS")
-    Rel(checkout_svc, orders_db, "Reads/writes orders", "JDBC")
-    Rel(checkout_svc, stripe, "Charges card", "HTTPS")
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#ffffff
+    classDef container fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerDb fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerQueue fill:#1168bd,stroke:#0b4884,color:#ffffff
+    style systemBoundary fill:none,stroke:#9aa4b2,stroke-width:1px,color:#5b6472
 </output>
 </example>
 

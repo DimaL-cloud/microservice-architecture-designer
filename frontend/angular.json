@@ -33,7 +33,9 @@
               "dayjs",
               "@braintree/sanitize-url",
               "cytoscape-fcose",
-              "cytoscape-cose-bilkent"
+              "cytoscape-cose-bilkent",
+              "@mermaid-js/layout-elk",
+              "elkjs"
             ]
           },
           "configurations": {
