@@ -1,0 +1,73 @@
+<div class="max-w-[1180px] mx-auto pt-14 px-9 pb-20">
+  <div class="flex items-end justify-between gap-4 mb-7">
+    <div>
+      <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">Projects</h1>
+      <div class="text-text-subtle text-body mt-1">
+        Design production-ready microservice architectures in minutes by turning your requirements into system design artifacts
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <button mad-button variant="primary" (click)="onNewProject()">
+        <app-icon name="plus" [size]="13" />
+        New project
+      </button>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 mb-[18px]">
+    <div class="flex-1 relative">
+      <app-icon
+        name="search"
+        [size]="14"
+        class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-subtle pointer-events-none"
+      />
+      <input
+        mad-input
+        type="text"
+        class="pl-8"
+        placeholder="Search projects"
+        [ngModel]="q()"
+        (ngModelChange)="q.set($any($event))"
+      />
+    </div>
+    @for (f of filters; track f) {
+      <button mad-chip [selected]="filter() === f" (click)="filter.set(f)">
+        {{ filterLabel(f) }}
+      </button>
+    }
+    <div class="flex-1"></div>
+  </div>
+
+  @if (filtered().length === 0) {
+    <div class="text-center py-15 px-5 text-text-subtle">
+      @if (projects().length === 0) {
+        No projects yet
+      } @else {
+        No projects match your filters
+      }
+    </div>
+  } @else {
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
+      @for (p of filtered(); track p.id) {
+        <article
+          class="flex flex-col gap-3 p-4 pb-3.5 relative overflow-hidden rounded-lg border border-border bg-surface transition-[border-color,box-shadow] duration-150 ease-out hover:border-border-strong hover:shadow-md cursor-pointer"
+          (click)="openProject(p.id)"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <h3 class="m-0 text-body font-semibold tracking-[-0.005em]">{{ p.name }}</h3>
+            <mad-status-tag [status]="p.status" />
+          </div>
+          <div class="text-meta text-text-subtle leading-[1.5] line-clamp-2 overflow-hidden">{{ p.summary }}</div>
+          <div class="flex items-center gap-2 mt-auto pt-1 font-mono text-meta text-text-subtle">
+            <span class="inline-flex items-center">
+              <app-icon class="mr-[3px]" name="model" [size]="11" />
+              {{ modelName(p.llmModelId) }}
+            </span>
+            <span class="w-[3px] h-[3px] rounded-full bg-text-faint"></span>
+            <span>{{ updatedRelative(p.createdAt) }}</span>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

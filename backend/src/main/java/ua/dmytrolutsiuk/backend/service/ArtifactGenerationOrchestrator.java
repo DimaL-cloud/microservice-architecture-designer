@@ -1,0 +1,96 @@
+package ua.dmytrolutsiuk.backend.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import ua.dmytrolutsiuk.backend.config.properties.LlmModelProperties;
+import ua.dmytrolutsiuk.backend.model.ArchitectureBlueprint;
+import ua.dmytrolutsiuk.backend.model.LlmModel;
+import ua.dmytrolutsiuk.backend.model.ProjectArtifacts;
+import ua.dmytrolutsiuk.backend.model.ProjectBrief;
+
+/**
+ * Runs the full artifact-generation pipeline on a background thread: blueprint → per-artifact
+ * generation → automated review → Mermaid validate/repair → persist + mark READY. Holds no database
+ * transaction across the long LLM/HTTP work (each persistence step is its own short transaction).
+ * Any failure marks the project FAILED so the user can restart it.
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ArtifactGenerationOrchestrator {
+
+    private final ProjectPersistenceService persistenceService;
+    private final LlmModelProperties llmModelProperties;
+    private final ProjectSummaryService projectSummaryService;
+    private final BlueprintService blueprintService;
+    private final ArtifactGenerationService artifactGenerationService;
+    private final ArtifactReviewService artifactReviewService;
+    private final MermaidRepairService mermaidRepairService;
+
+    @Async("artifactGenerationExecutor")
+    public void generate(Long projectId) {
+        log.info("Starting artifact generation for project {}", projectId);
+        try {
+            ProjectBrief brief = persistenceService.loadBrief(projectId);
+            LlmModel model = llmModelProperties.findById(brief.llmModelId());
+
+            // Best-effort: generate the project-list summary first so the card updates quickly.
+            // A failure here must not fail the whole project, so it is contained. Reuses an
+            // already-generated summary on restart (like the blueprint below).
+            generateSummary(projectId, model, brief);
+
+            ArchitectureBlueprint blueprint = persistenceService.loadBlueprint(projectId);
+            if (blueprint == null) {
+                blueprint = blueprintService.generate(model, brief);
+                persistenceService.saveBlueprint(projectId, blueprint);
+            } else {
+                log.info("Reusing persisted blueprint for project {}", projectId);
+            }
+
+            ProjectArtifacts artifacts = artifactGenerationService.generateAll(model, blueprint);
+            artifacts = artifactReviewService.reviewAll(model, blueprint, artifacts);
+            artifacts = mermaidRepairService.validateAndRepair(model, artifacts);
+
+            persistenceService.completeReady(projectId, artifacts);
+            log.info("Artifact generation completed for project {}", projectId);
+        } catch (Exception e) {
+            log.error("Artifact generation failed for project {}: {}", projectId, e.getMessage(), e);
+            try {
+                persistenceService.markFailed(projectId, e.getMessage());
+            } catch (Exception markFailure) {
+                log.error("Could not mark project {} as FAILED", projectId, markFailure);
+            }
+        }
+    }
+
+    /**
+     * Generates the project-list summary and persists it, replacing the placeholder set at save
+     * time. Reuses an already-generated summary on restart (a real, non-placeholder value is kept
+     * untouched) so a transient summary blip cannot blank a good summary. Entirely best-effort:
+     * any failure (LLM or persistence) is logged and swallowed so it cannot fail artifact
+     * generation. When there is only a placeholder/null and summarization fails, the value is
+     * cleared to {@code null} so the card does not show a stale "generating" message.
+     */
+    private void generateSummary(Long projectId, LlmModel model, ProjectBrief brief) {
+        String existing = persistenceService.loadSummary(projectId);
+        if (existing != null && !existing.equals(ProjectSummaryService.PLACEHOLDER)) {
+            log.info("Reusing persisted summary for project {}", projectId);
+            return;
+        }
+        String summary;
+        try {
+            summary = projectSummaryService.summarize(model, brief);
+        } catch (Exception e) {
+            log.warn("Summary generation failed for project {}; clearing placeholder summary: {}",
+                    projectId, e.getMessage());
+            summary = null;
+        }
+        try {
+            persistenceService.saveSummary(projectId, summary);
+        } catch (Exception e) {
+            log.warn("Could not persist summary for project {}", projectId, e);
+        }
+    }
+}

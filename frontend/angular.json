@@ -27,6 +27,15 @@
             ],
             "styles": [
               "src/styles.css"
+            ],
+            "allowedCommonJsDependencies": [
+              "jszip",
+              "dayjs",
+              "@braintree/sanitize-url",
+              "cytoscape-fcose",
+              "cytoscape-cose-bilkent",
+              "@mermaid-js/layout-elk",
+              "elkjs"
             ]
           },
           "configurations": {
@@ -55,6 +64,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"

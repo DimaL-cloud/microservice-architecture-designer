@@ -1,0 +1,216 @@
+<div class="max-w-[1180px] mx-auto pt-14 px-9 pb-20">
+  <a
+    [routerLink]="['/']"
+    class="inline-flex items-center gap-1.5 text-meta text-text-subtle hover:text-text-body no-underline mb-4"
+  >
+    <span aria-hidden="true">&larr;</span>
+    Back to projects
+  </a>
+
+  @if (project(); as p) {
+    @switch (p.status) {
+      @case ('GENERATING') {
+        <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">{{ p.name }}</h1>
+        <div class="mt-6 flex items-center gap-2.5 text-text-subtle text-body">
+          <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
+            <path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          </svg>
+          Generating architecture&hellip; This can take a minute.
+        </div>
+      }
+
+      @case ('FAILED') {
+        <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">{{ p.name }}</h1>
+        <div class="mt-6 rounded-lg border border-danger-border bg-danger-subtle p-4">
+          <div class="flex items-center gap-2 text-danger-strong font-medium">
+            <app-icon name="alert" [size]="13" />
+            Generation failed
+          </div>
+          <div class="text-meta text-text-subtle mt-1.5">
+            {{ p.generationError ?? 'Something went wrong while generating the architecture.' }}
+          </div>
+        </div>
+        @if (statusError(); as err) {
+          <div class="text-meta text-danger-strong mt-3">{{ err }}</div>
+        }
+        <div class="mt-5">
+          <button
+            type="button"
+            mad-button
+            variant="primary"
+            [disabled]="loading()"
+            (click)="onRestartGeneration()"
+          >
+            Restart generation
+          </button>
+        </div>
+      }
+
+      @case ('READY') {
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h1 class="text-heading font-semibold tracking-[-0.02em] m-0">{{ p.name }}</h1>
+            @if (p.summary) {
+              <div class="text-text-subtle text-body mt-1.5 max-w-[760px]">{{ p.summary }}</div>
+            }
+            <div class="flex items-center gap-2 mt-2.5 font-mono text-meta text-text-subtle">
+              <span class="inline-flex items-center">
+                <app-icon class="mr-[3px]" name="model" [size]="11" />
+                {{ modelName(p.llmModelId) }}
+              </span>
+              <span class="w-[3px] h-[3px] rounded-full bg-text-faint"></span>
+              <span>Created {{ createdRelative(p.createdAt) }}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            mad-button
+            variant="primary"
+            class="shrink-0"
+            [disabled]="exporting() || !artifacts()"
+            (click)="onExportAll()"
+          >
+            <app-icon name="download" [size]="13" />
+            @if (exporting()) {
+              Exporting&hellip;
+            } @else {
+              Export All
+            }
+          </button>
+        </div>
+
+        @if (artifacts(); as a) {
+          <div
+            class="sticky top-0 z-10 bg-surface -mx-9 px-9 mt-7 pt-3 pb-3 border-b border-border flex flex-wrap gap-1.5"
+          >
+            @for (t of tabs; track t.key) {
+              <button mad-chip [selected]="activeTab() === t.key" (click)="selectTab(t.key)">
+                {{ t.label }}
+              </button>
+            }
+          </div>
+
+          <div class="mt-6">
+            @switch (activeTab()) {
+              @case ('context') {
+                <mad-mermaid-diagram [code]="a.c4Context" title="C4 Context" />
+              }
+
+              @case ('container') {
+                <mad-mermaid-diagram [code]="a.c4Container" title="C4 Container" />
+              }
+
+              @case ('sdd') {
+                <div class="flex gap-8 items-start">
+                  @if (toc().length) {
+                    <nav
+                      class="hidden lg:block w-56 shrink-0 sticky top-[84px] max-h-[calc(100vh-120px)] overflow-y-auto"
+                    >
+                      <div class="text-meta font-semibold text-text-faint uppercase tracking-[0.04em] mb-2">
+                        Contents
+                      </div>
+                      <ul class="flex flex-col gap-0.5 m-0 p-0 list-none">
+                        @for (item of toc(); track item.id) {
+                          <li>
+                            <button
+                              type="button"
+                              class="block w-full text-left text-meta text-text-subtle hover:text-text-body py-0.5 truncate cursor-pointer bg-transparent border-0"
+                              [style.paddingLeft.px]="(item.level - 1) * 10"
+                              (click)="scrollToHeading(item.id)"
+                            >
+                              {{ item.text }}
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    </nav>
+                  }
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-end mb-3">
+                      <button type="button" mad-button (click)="downloadSdd()">
+                        <app-icon name="download" [size]="13" />
+                        Download
+                      </button>
+                    </div>
+                    <div #sddContent class="prose-mad">
+                      <markdown [data]="a.sdd" (ready)="onSddReady()" />
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @case ('adrs') {
+                @if (a.adrs.length) {
+                  <div class="flex gap-6 items-start">
+                    <nav
+                      class="w-64 shrink-0 sticky top-[84px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col gap-1"
+                    >
+                      @for (adr of a.adrs; track adr.id; let i = $index) {
+                        <button
+                          type="button"
+                          [class]="railItemClass(selectedAdr() === i)"
+                          (click)="selectedAdr.set(i)"
+                        >
+                          {{ adr.title }}
+                        </button>
+                      }
+                    </nav>
+                    <div class="flex-1 min-w-0">
+                      @if (a.adrs[selectedAdr()]; as adr) {
+                        <div class="flex justify-end mb-3">
+                          <button type="button" mad-button (click)="downloadCurrentAdr()">
+                            <app-icon name="download" [size]="13" />
+                            Download
+                          </button>
+                        </div>
+                        <div class="prose-mad">
+                          <markdown [data]="adr.markdown" />
+                        </div>
+                      }
+                    </div>
+                  </div>
+                } @else {
+                  <div class="text-text-subtle text-body">No ADRs were generated.</div>
+                }
+              }
+
+              @case ('sequence') {
+                @if (a.sequenceDiagrams.length) {
+                  <div class="flex gap-6 items-start">
+                    <nav
+                      class="w-64 shrink-0 sticky top-[84px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col gap-1"
+                    >
+                      @for (seq of a.sequenceDiagrams; track seq.id; let i = $index) {
+                        <button
+                          type="button"
+                          [class]="railItemClass(selectedSeq() === i)"
+                          (click)="selectedSeq.set(i)"
+                        >
+                          {{ seq.title }}
+                        </button>
+                      }
+                    </nav>
+                    <div class="flex-1 min-w-0">
+                      @if (a.sequenceDiagrams[selectedSeq()]; as seq) {
+                        <mad-mermaid-diagram [code]="seq.code" [title]="seq.title" />
+                      }
+                    </div>
+                  </div>
+                } @else {
+                  <div class="text-text-subtle text-body">No sequence diagrams were generated.</div>
+                }
+              }
+            }
+          </div>
+        } @else {
+          <div class="mt-6 text-text-subtle text-body">No artifacts are available for this project.</div>
+        }
+      }
+    }
+  } @else if (loading()) {
+    <div class="mt-6 text-text-subtle text-body">Loading&hellip;</div>
+  } @else {
+    <div class="mt-6 text-text-subtle text-body">Project not found.</div>
+  }
+</div>

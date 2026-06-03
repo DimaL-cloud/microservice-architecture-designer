@@ -17,6 +17,20 @@ services:
       timeout: 5s
       retries: 10
 
+  mermaid-validator:
+    build:
+      context: ./mermaid-validator
+    container_name: mad-mermaid-validator
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   backend:
     build:
       context: ./backend
@@ -25,12 +39,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mermaid-validator:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mad
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MERMAID_VALIDATOR_URL: http://mermaid-validator:3000
     ports:
       - "8080:8080"
 

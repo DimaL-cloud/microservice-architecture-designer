@@ -1,0 +1,65 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mad}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  ai:
+    chat:
+      client:
+        enabled: false
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:dummy}
+      timeout: 8m
+    openai:
+      api-key: ${OPENAI_API_KEY:dummy}
+  http:
+    serviceclient:
+      mermaid-validator:
+        base-url: ${MERMAID_VALIDATOR_URL:http://localhost:3000}
+    clients:
+      connect-timeout: 10s
+      read-timeout: 60s
+  profiles:
+    active: dev
+llm:
+  models:
+    - id: claude-opus-4-8
+      name: Claude Opus 4.8
+      provider: ANTHROPIC
+    - id: claude-sonnet-4-6
+      name: Claude Sonnet 4.6
+      provider: ANTHROPIC
+    - id: claude-haiku-4-5
+      name: Claude Haiku 4.5
+      provider: ANTHROPIC
+    - id: gpt-5
+      name: GPT-5
+      provider: OPENAI
+    - id: gpt-5.4-mini
+      name: GPT-5.4 Mini
+      provider: OPENAI
+generation:
+  # Max attempts to repair an invalid Mermaid diagram before failing the project.
+  mermaid-repair-max-attempts: 3
+  # Max concurrent per-artifact LLM calls. Keep low on constrained API tiers (per-minute token
+  # limits); raise it when the account allows more throughput.
+  concurrency: 1
+  # Upper bounds on generated ADRs / sequence diagrams (one per blueprint decision / key flow).
+  max-adrs: 8
+  max-flows: 6
+  # Per-artifact output-token caps.
+  max-tokens:
+    summary: 512
+    # Large/complex briefs (many containers + relationships) produce big blueprint JSON; an
+    # 8000 cap truncated it mid-string and broke structured-output parsing. Keep generous headroom.
+    blueprint: 32000
+    sdd: 16000
+    diagram: 8000
+    adr: 6000

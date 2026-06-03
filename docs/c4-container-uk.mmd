@@ -1,0 +1,31 @@
+---
+title: Контейнерна діаграма C4 — MAD
+config:
+  layout: elk
+---
+flowchart TB
+    user(["Архітектор / Розробник<br/>[Особа]<br/>Проєктує мікросервісну архітектуру"]):::person
+    anthropic["Anthropic API<br/>[Зовнішня система]<br/>LLM-провайдер (Claude)"]:::external
+    openai["OpenAI API<br/>[Зовнішня система]<br/>LLM-провайдер (GPT)"]:::external
+
+    subgraph systemBoundary["MAD — Дизайнер мікросервісної архітектури"]
+        direction TB
+        frontend["Вебінтерфейс (SPA)<br/>[Angular 21]<br/>Анкета вводу та перегляд артефактів"]:::container
+        backend["Бекенд-сервіс<br/>[Java 25, Spring Boot 4]<br/>REST API та конвеєр генерації"]:::container
+        validator["Валідатор Mermaid<br/>[Node 22, Hono]<br/>Перевіряє синтаксис діаграм"]:::container
+        database[("База даних<br/>[PostgreSQL 17]<br/>Зберігає проєкти у форматі jsonb")]:::containerDb
+    end
+
+    user -->|"Користується через браузер<br/>[HTTPS]"| frontend
+    frontend -->|"Викликає бекенд через /api<br/>[HTTPS/JSON]"| backend
+    backend -->|"Читає та записує проєкти<br/>[JDBC]"| database
+    backend -->|"Валідує діаграми<br/>[HTTP/JSON]"| validator
+    backend -->|"Генерує артефакти<br/>[HTTPS/REST]"| anthropic
+    backend -->|"Генерує артефакти<br/>[HTTPS/REST]"| openai
+
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#ffffff
+    classDef container fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerDb fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerQueue fill:#1168bd,stroke:#0b4884,color:#ffffff
+    style systemBoundary fill:none,stroke:#9aa4b2,stroke-width:1px,color:#5b6472
