@@ -10,7 +10,6 @@ import ua.dmytrolutsiuk.backend.model.ProjectBrief;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 /**
  * Produces the canonical {@link ArchitectureBlueprint} from the project brief — the first and only
@@ -45,30 +44,6 @@ public class BlueprintService {
         String userMessage = PromptText.tag("project_brief", jsonCodec.writePretty(brief));
         ArchitectureBlueprint blueprint = llmChatService.call(
                 model, systemPrompt, userMessage, properties.maxTokens().blueprint(), ArchitectureBlueprint.class);
-        return clamp(blueprint);
-    }
-
-    private ArchitectureBlueprint clamp(ArchitectureBlueprint blueprint) {
-        List<ArchitectureBlueprint.Decision> decisions = limit(blueprint.decisions(), properties.maxAdrs());
-        List<ArchitectureBlueprint.Flow> flows = limit(blueprint.keyFlows(), properties.maxFlows());
-        if (decisions == blueprint.decisions() && flows == blueprint.keyFlows()) {
-            return blueprint;
-        }
-        return new ArchitectureBlueprint(
-                blueprint.systemName(),
-                blueprint.systemOverview(),
-                blueprint.actors(),
-                blueprint.containers(),
-                blueprint.relationships(),
-                decisions,
-                flows
-        );
-    }
-
-    private static <T> List<T> limit(List<T> values, int max) {
-        if (values == null || values.size() <= max) {
-            return values;
-        }
-        return List.copyOf(values.subList(0, max));
+        return BlueprintClamp.clamp(blueprint, properties.maxAdrs(), properties.maxFlows());
     }
 }

@@ -11,8 +11,9 @@ import ua.dmytrolutsiuk.backend.model.ProjectArtifacts;
 import ua.dmytrolutsiuk.backend.model.ProjectBrief;
 
 /**
- * Runs the full artifact-generation pipeline on a background thread: blueprint → per-artifact
- * generation → automated review → Mermaid validate/repair → persist + mark READY. Holds no database
+ * Runs the full artifact-generation pipeline on a background thread: blueprint → blueprint
+ * review/fix → per-artifact generation → automated review → Mermaid validate/repair → persist + mark
+ * READY. Holds no database
  * transaction across the long LLM/HTTP work (each persistence step is its own short transaction).
  * Any failure marks the project FAILED so the user can restart it.
  */
@@ -25,6 +26,7 @@ public class ArtifactGenerationOrchestrator {
     private final LlmModelProperties llmModelProperties;
     private final ProjectSummaryService projectSummaryService;
     private final BlueprintService blueprintService;
+    private final BlueprintReviewService blueprintReviewService;
     private final ArtifactGenerationService artifactGenerationService;
     private final ArtifactReviewService artifactReviewService;
     private final MermaidRepairService mermaidRepairService;
@@ -41,6 +43,7 @@ public class ArtifactGenerationOrchestrator {
             ArchitectureBlueprint blueprint = persistenceService.loadBlueprint(projectId);
             if (blueprint == null) {
                 blueprint = blueprintService.generate(model, brief);
+                blueprint = blueprintReviewService.review(model, brief, blueprint);
                 persistenceService.saveBlueprint(projectId, blueprint);
             } else {
                 log.info("Reusing persisted blueprint for project {}", projectId);
