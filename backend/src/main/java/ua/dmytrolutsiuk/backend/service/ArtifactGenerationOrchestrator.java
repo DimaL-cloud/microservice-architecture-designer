@@ -36,9 +36,6 @@ public class ArtifactGenerationOrchestrator {
             ProjectBrief brief = persistenceService.loadBrief(projectId);
             LlmModel model = llmModelProperties.findById(brief.llmModelId());
 
-            // Best-effort: generate the project-list summary first so the card updates quickly.
-            // A failure here must not fail the whole project, so it is contained. Reuses an
-            // already-generated summary on restart (like the blueprint below).
             generateSummary(projectId, model, brief);
 
             ArchitectureBlueprint blueprint = persistenceService.loadBlueprint(projectId);
