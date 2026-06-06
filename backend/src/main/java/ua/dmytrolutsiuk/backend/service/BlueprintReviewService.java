@@ -51,12 +51,14 @@ public class BlueprintReviewService {
         }
     }
 
-    public ArchitectureBlueprint review(LlmModel model, ProjectBrief brief, ArchitectureBlueprint blueprint) {
+    public ArchitectureBlueprint review(LlmModel model, ProjectBrief brief, ArchitectureBlueprint blueprint,
+                                        TokenUsageAccumulator accumulator) {
         String userMessage =
                 PromptText.tag("project_brief", jsonCodec.writePretty(brief)) + "\n" +
                         PromptText.tag("architecture_blueprint", jsonCodec.writePretty(blueprint));
         ArchitectureBlueprint reviewed = llmChatService.call(
-                model, systemPrompt, userMessage, properties.maxTokens().blueprint(), ArchitectureBlueprint.class);
+                model, systemPrompt, userMessage, properties.maxTokens().blueprint(),
+                ArchitectureBlueprint.class, accumulator);
         reviewed = BlueprintClamp.clamp(reviewed, properties.maxAdrs(), properties.maxFlows());
         validateReferentialIntegrity(reviewed);
         return reviewed;

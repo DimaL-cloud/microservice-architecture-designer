@@ -34,27 +34,35 @@ public class ArtifactGenerationOrchestrator {
     @Async("artifactGenerationExecutor")
     public void generate(Long projectId) {
         log.info("Starting artifact generation for project {}", projectId);
+        // One accumulator and wall-clock start per run; metrics are persisted only on success
+        // (completeReady) and overwrite any previous run's values. On a restart the reused blueprint
+        // and summary make no LLM calls, so their tokens are not counted again.
+        TokenUsageAccumulator usage = new TokenUsageAccumulator();
+        long startNanos = System.nanoTime();
         try {
             ProjectBrief brief = persistenceService.loadBrief(projectId);
             LlmModel model = llmModelProperties.findById(brief.llmModelId());
 
-            generateSummary(projectId, model, brief);
+            generateSummary(projectId, model, brief, usage);
 
             ArchitectureBlueprint blueprint = persistenceService.loadBlueprint(projectId);
             if (blueprint == null) {
-                blueprint = blueprintService.generate(model, brief);
-                blueprint = blueprintReviewService.review(model, brief, blueprint);
+                blueprint = blueprintService.generate(model, brief, usage);
+                blueprint = blueprintReviewService.review(model, brief, blueprint, usage);
                 persistenceService.saveBlueprint(projectId, blueprint);
             } else {
                 log.info("Reusing persisted blueprint for project {}", projectId);
             }
 
-            ProjectArtifacts artifacts = artifactGenerationService.generateAll(model, blueprint);
-            artifacts = artifactReviewService.reviewAll(model, blueprint, artifacts);
-            artifacts = mermaidRepairService.validateAndRepair(model, artifacts);
+            ProjectArtifacts artifacts = artifactGenerationService.generateAll(model, blueprint, usage);
+            artifacts = artifactReviewService.reviewAll(model, blueprint, artifacts, usage);
+            artifacts = mermaidRepairService.validateAndRepair(model, artifacts, usage);
 
-            persistenceService.completeReady(projectId, artifacts);
-            log.info("Artifact generation completed for project {}", projectId);
+            long generationTimeMs = (System.nanoTime() - startNanos) / 1_000_000;
+            persistenceService.completeReady(
+                    projectId, artifacts, usage.inputTokens(), usage.outputTokens(), generationTimeMs);
+            log.info("Artifact generation completed for project {} ({} input / {} output tokens, {} ms)",
+                    projectId, usage.inputTokens(), usage.outputTokens(), generationTimeMs);
         } catch (Exception e) {
             log.error("Artifact generation failed for project {}: {}", projectId, e.getMessage(), e);
             try {
@@ -73,7 +81,7 @@ public class ArtifactGenerationOrchestrator {
      * generation. When there is only a placeholder/null and summarization fails, the value is
      * cleared to {@code null} so the card does not show a stale "generating" message.
      */
-    private void generateSummary(Long projectId, LlmModel model, ProjectBrief brief) {
+    private void generateSummary(Long projectId, LlmModel model, ProjectBrief brief, TokenUsageAccumulator usage) {
         String existing = persistenceService.loadSummary(projectId);
         if (existing != null && !existing.equals(ProjectSummaryService.PLACEHOLDER)) {
             log.info("Reusing persisted summary for project {}", projectId);
@@ -81,7 +89,7 @@ public class ArtifactGenerationOrchestrator {
         }
         String summary;
         try {
-            summary = projectSummaryService.summarize(model, brief);
+            summary = projectSummaryService.summarize(model, brief, usage);
         } catch (Exception e) {
             log.warn("Summary generation failed for project {}; clearing placeholder summary: {}",
                     projectId, e.getMessage());

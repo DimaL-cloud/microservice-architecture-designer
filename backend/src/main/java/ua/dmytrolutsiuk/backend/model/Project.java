@@ -63,6 +63,16 @@ public class Project {
     @Column(name = "generation_error", columnDefinition = "text")
     private String generationError;
 
+    /** Generation metrics, written only when a run reaches READY; null until then (or for FAILED runs). */
+    @Column(name = "total_input_tokens")
+    private Long totalInputTokens;
+
+    @Column(name = "total_output_tokens")
+    private Long totalOutputTokens;
+
+    @Column(name = "total_generation_time_ms")
+    private Long totalGenerationTimeMs;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

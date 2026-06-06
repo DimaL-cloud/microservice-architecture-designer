@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -32,7 +34,7 @@ public class LlmChatService {
     }
 
     public <T> T call(LlmModel model, String systemPrompt, String userPrompt, Class<T> responseType) {
-        return call(model, systemPrompt, userPrompt, null, responseType);
+        return call(model, systemPrompt, userPrompt, null, responseType, null);
     }
 
     /**
@@ -40,11 +42,28 @@ public class LlmChatService {
      * response). Pass {@code null} to use the provider default.
      */
     public <T> T call(LlmModel model, String systemPrompt, String userPrompt, Integer maxOutputTokens, Class<T> responseType) {
-        return withRetry(() -> buildSpec(model, maxOutputTokens)
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .entity(responseType));
+        return call(model, systemPrompt, userPrompt, maxOutputTokens, responseType, null);
+    }
+
+    /**
+     * Structured-output call that also meters token usage into {@code accumulator} (pass {@code null}
+     * to skip metering, e.g. for calls made outside a project's generation run). Uses
+     * {@code responseEntity(...)} so the same call yields both the parsed entity and the
+     * {@link ChatResponse} carrying usage metadata.
+     */
+    public <T> T call(LlmModel model, String systemPrompt, String userPrompt, Integer maxOutputTokens,
+                      Class<T> responseType, TokenUsageAccumulator accumulator) {
+        return withRetry(() -> {
+            var responseEntity = buildSpec(model, maxOutputTokens)
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .call()
+                    .responseEntity(responseType);
+            // Recorded only after a successful call returns, so a retried transient-error attempt
+            // (which throws above) is never counted.
+            record(accumulator, responseEntity.getResponse());
+            return responseEntity.getEntity();
+        });
     }
 
     /**
@@ -53,11 +72,42 @@ public class LlmChatService {
      * which would otherwise truncate at the provider default).
      */
     public String callForText(LlmModel model, String systemPrompt, String userPrompt, Integer maxOutputTokens) {
-        return withRetry(() -> buildSpec(model, maxOutputTokens)
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .content());
+        return callForText(model, systemPrompt, userPrompt, maxOutputTokens, null);
+    }
+
+    /**
+     * Raw-text call that also meters token usage into {@code accumulator} (pass {@code null} to skip
+     * metering). Uses {@code chatResponse()} so the {@link ChatResponse} carrying usage metadata is
+     * available alongside the text body.
+     */
+    public String callForText(LlmModel model, String systemPrompt, String userPrompt, Integer maxOutputTokens,
+                              TokenUsageAccumulator accumulator) {
+        return withRetry(() -> {
+            ChatResponse response = buildSpec(model, maxOutputTokens)
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .call()
+                    .chatResponse();
+            record(accumulator, response);
+            return response.getResult().getOutput().getText();
+        });
+    }
+
+    /**
+     * Adds the response's prompt/completion token usage to {@code accumulator}. No-op when there is
+     * no accumulator. A response that carries no usage metadata is logged at WARN (so a provider or
+     * Spring AI regression is visible rather than silently undercounting) and otherwise ignored.
+     */
+    private void record(TokenUsageAccumulator accumulator, ChatResponse response) {
+        if (accumulator == null) {
+            return;
+        }
+        Usage usage = response == null || response.getMetadata() == null ? null : response.getMetadata().getUsage();
+        if (usage == null) {
+            log.warn("LLM response carried no token-usage metadata; tokens not counted for this call");
+            return;
+        }
+        accumulator.add(usage.getPromptTokens(), usage.getCompletionTokens());
     }
 
     /**

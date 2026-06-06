@@ -48,29 +48,30 @@ public class ArtifactReviewService {
         }
     }
 
-    public ProjectArtifacts reviewAll(LlmModel model, ArchitectureBlueprint blueprint, ProjectArtifacts artifacts) {
+    public ProjectArtifacts reviewAll(LlmModel model, ArchitectureBlueprint blueprint, ProjectArtifacts artifacts,
+                                      TokenUsageAccumulator accumulator) {
         String blueprintTag = PromptText.tag("architecture_blueprint", jsonCodec.writePretty(blueprint));
         GenerationProperties.MaxTokens tokens = properties.maxTokens();
 
         CompletableFuture<String> c4Context = supply(() ->
-                review(model, blueprintTag, "C4_CONTEXT", artifacts.c4Context(), tokens.diagram()));
+                review(model, blueprintTag, "C4_CONTEXT", artifacts.c4Context(), tokens.diagram(), accumulator));
         CompletableFuture<String> c4Container = supply(() ->
-                review(model, blueprintTag, "C4_CONTAINER", artifacts.c4Container(), tokens.diagram()));
+                review(model, blueprintTag, "C4_CONTAINER", artifacts.c4Container(), tokens.diagram(), accumulator));
         CompletableFuture<String> sdd = supply(() ->
-                review(model, blueprintTag, "SDD", artifacts.sdd(), tokens.sdd()));
+                review(model, blueprintTag, "SDD", artifacts.sdd(), tokens.sdd(), accumulator));
 
         List<CompletableFuture<ProjectArtifacts.Adr>> adrFutures = artifacts.adrs().stream()
                 .map(adr -> supply(() -> new ProjectArtifacts.Adr(
                         adr.id(),
                         adr.title(),
-                        review(model, blueprintTag, "ADR", adr.markdown(), tokens.adr()))))
+                        review(model, blueprintTag, "ADR", adr.markdown(), tokens.adr(), accumulator))))
                 .toList();
 
         List<CompletableFuture<ProjectArtifacts.SequenceDiagram>> sequenceFutures = artifacts.sequenceDiagrams().stream()
                 .map(diagram -> supply(() -> new ProjectArtifacts.SequenceDiagram(
                         diagram.id(),
                         diagram.title(),
-                        review(model, blueprintTag, "SEQUENCE_DIAGRAM", diagram.code(), tokens.diagram()))))
+                        review(model, blueprintTag, "SEQUENCE_DIAGRAM", diagram.code(), tokens.diagram(), accumulator))))
                 .toList();
 
         return new ProjectArtifacts(
@@ -82,10 +83,11 @@ public class ArtifactReviewService {
         );
     }
 
-    private String review(LlmModel model, String blueprintTag, String type, String content, int maxTokens) {
+    private String review(LlmModel model, String blueprintTag, String type, String content, int maxTokens,
+                          TokenUsageAccumulator accumulator) {
         String artifactTag = "<artifact type=\"" + type + "\">\n" + content + "\n</artifact>";
         String userMessage = blueprintTag + "\n" + artifactTag;
-        return PromptText.stripFences(llmChatService.callForText(model, systemPrompt, userMessage, maxTokens));
+        return PromptText.stripFences(llmChatService.callForText(model, systemPrompt, userMessage, maxTokens, accumulator));
     }
 
     private <T> CompletableFuture<T> supply(Supplier<T> supplier) {

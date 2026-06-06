@@ -57,22 +57,22 @@ public class ArtifactGenerationService {
         this.sequenceDiagramPrompt = read(sequenceDiagramPrompt, "sequence-diagram.md");
     }
 
-    public ProjectArtifacts generateAll(LlmModel model, ArchitectureBlueprint blueprint) {
+    public ProjectArtifacts generateAll(LlmModel model, ArchitectureBlueprint blueprint, TokenUsageAccumulator accumulator) {
         String blueprintTag = PromptText.tag("architecture_blueprint", jsonCodec.writePretty(blueprint));
         GenerationProperties.MaxTokens tokens = properties.maxTokens();
 
         CompletableFuture<String> c4Context = supply(() ->
-                PromptText.stripFences(llmChatService.callForText(model, c4ContextPrompt, blueprintTag, tokens.diagram())));
+                PromptText.stripFences(llmChatService.callForText(model, c4ContextPrompt, blueprintTag, tokens.diagram(), accumulator)));
         CompletableFuture<String> c4Container = supply(() ->
-                PromptText.stripFences(llmChatService.callForText(model, c4ContainerPrompt, blueprintTag, tokens.diagram())));
+                PromptText.stripFences(llmChatService.callForText(model, c4ContainerPrompt, blueprintTag, tokens.diagram(), accumulator)));
         CompletableFuture<String> sdd = supply(() ->
-                PromptText.stripFences(llmChatService.callForText(model, sddPrompt, blueprintTag, tokens.sdd())));
+                PromptText.stripFences(llmChatService.callForText(model, sddPrompt, blueprintTag, tokens.sdd(), accumulator)));
 
         List<CompletableFuture<ProjectArtifacts.Adr>> adrFutures = blueprint.decisions().stream()
                 .map(decision -> supply(() -> {
                     String userMessage = blueprintTag + "\n" + PromptText.tag("target_decision", jsonCodec.writePretty(decision));
                     String markdown = PromptText.stripFences(
-                            llmChatService.callForText(model, adrPrompt, userMessage, tokens.adr()));
+                            llmChatService.callForText(model, adrPrompt, userMessage, tokens.adr(), accumulator));
                     return new ProjectArtifacts.Adr(decision.id(), decision.title(), markdown);
                 }))
                 .toList();
@@ -81,7 +81,7 @@ public class ArtifactGenerationService {
                 .map(flow -> supply(() -> {
                     String userMessage = blueprintTag + "\n" + PromptText.tag("target_flow", jsonCodec.writePretty(flow));
                     String code = PromptText.stripFences(
-                            llmChatService.callForText(model, sequenceDiagramPrompt, userMessage, tokens.diagram()));
+                            llmChatService.callForText(model, sequenceDiagramPrompt, userMessage, tokens.diagram(), accumulator));
                     return new ProjectArtifacts.SequenceDiagram(flow.id(), flow.title(), code);
                 }))
                 .toList();

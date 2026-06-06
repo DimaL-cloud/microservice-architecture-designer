@@ -51,7 +51,7 @@ public class MermaidRepairService {
         }
     }
 
-    public ProjectArtifacts validateAndRepair(LlmModel model, ProjectArtifacts artifacts) {
+    public ProjectArtifacts validateAndRepair(LlmModel model, ProjectArtifacts artifacts, TokenUsageAccumulator accumulator) {
         Map<String, String> codes = collectDiagrams(artifacts);
 
         Map<String, String> invalid = validate(codes, codes.keySet().stream().toList());
@@ -59,7 +59,7 @@ public class MermaidRepairService {
         int maxAttempts = Math.max(1, properties.mermaidRepairMaxAttempts());
         while (!invalid.isEmpty() && attempts < maxAttempts) {
             for (Map.Entry<String, String> entry : invalid.entrySet()) {
-                codes.put(entry.getKey(), repair(model, codes.get(entry.getKey()), entry.getValue()));
+                codes.put(entry.getKey(), repair(model, codes.get(entry.getKey()), entry.getValue(), accumulator));
             }
             attempts++;
             invalid = validate(codes, invalid.keySet().stream().toList());
@@ -101,10 +101,10 @@ public class MermaidRepairService {
         return invalid;
     }
 
-    private String repair(LlmModel model, String code, String error) {
+    private String repair(LlmModel model, String code, String error, TokenUsageAccumulator accumulator) {
         String userMessage = PromptText.tag("diagram", code) + "\n" + PromptText.tag("validator_error", error);
         return PromptText.stripFences(
-                llmChatService.callForText(model, systemPrompt, userMessage, properties.maxTokens().diagram()));
+                llmChatService.callForText(model, systemPrompt, userMessage, properties.maxTokens().diagram(), accumulator));
     }
 
     private ProjectArtifacts rebuild(ProjectArtifacts artifacts, Map<String, String> codes) {

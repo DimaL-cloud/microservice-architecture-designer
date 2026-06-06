@@ -40,10 +40,11 @@ public class BlueprintService {
         }
     }
 
-    public ArchitectureBlueprint generate(LlmModel model, ProjectBrief brief) {
+    public ArchitectureBlueprint generate(LlmModel model, ProjectBrief brief, TokenUsageAccumulator accumulator) {
         String userMessage = PromptText.tag("project_brief", jsonCodec.writePretty(brief));
         ArchitectureBlueprint blueprint = llmChatService.call(
-                model, systemPrompt, userMessage, properties.maxTokens().blueprint(), ArchitectureBlueprint.class);
+                model, systemPrompt, userMessage, properties.maxTokens().blueprint(),
+                ArchitectureBlueprint.class, accumulator);
         return BlueprintClamp.clamp(blueprint, properties.maxAdrs(), properties.maxFlows());
     }
 }

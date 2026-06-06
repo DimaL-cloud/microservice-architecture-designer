@@ -42,9 +42,10 @@ public class ProjectSummaryService {
         this.systemPrompt = read(promptResource);
     }
 
-    public String summarize(LlmModel model, ProjectBrief brief) {
+    public String summarize(LlmModel model, ProjectBrief brief, TokenUsageAccumulator accumulator) {
         String userMessage = PromptText.tag("project_brief", jsonCodec.writePretty(brief));
-        String summary = llmChatService.callForText(model, systemPrompt, userMessage, properties.maxTokens().summary());
+        String summary = llmChatService.callForText(
+                model, systemPrompt, userMessage, properties.maxTokens().summary(), accumulator);
         return summary == null ? null : summary.strip();
     }
 

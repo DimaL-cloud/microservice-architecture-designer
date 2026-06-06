@@ -67,12 +67,20 @@ public class ProjectPersistenceService {
         projectRepository.save(project);
     }
 
+    /**
+     * Marks the project READY and records the run's generation metrics (overwriting any prior run's
+     * values). Metrics are persisted only on this success path; a {@code FAILED} run leaves them as-is.
+     */
     @Transactional
-    public void completeReady(Long projectId, ProjectArtifacts artifacts) {
+    public void completeReady(Long projectId, ProjectArtifacts artifacts,
+                              long totalInputTokens, long totalOutputTokens, long generationTimeMs) {
         Project project = require(projectId);
         project.setArtifacts(jsonCodec.write(artifacts));
         project.setGenerationError(null);
         project.setStatus(ProjectStatus.READY);
+        project.setTotalInputTokens(totalInputTokens);
+        project.setTotalOutputTokens(totalOutputTokens);
+        project.setTotalGenerationTimeMs(generationTimeMs);
         projectRepository.save(project);
     }
 
