@@ -37,7 +37,9 @@ class AnswerMapController {
   }
 
   setTextValue(q: Question, value: string): void {
-    this.update(q, { kind: 'text', value });
+    // `type="number"` inputs emit a number (or null when empty) via ngModel,
+    // so coerce to a string before storing it in a text answer.
+    this.update(q, { kind: 'text', value: value == null ? '' : String(value) });
   }
 
   isSelected(q: ChoiceQuestion, option: string): boolean {
