@@ -92,7 +92,7 @@ Apply every item. The brief wins every requirements conflict; best practice wins
 
 ## Output format
 
-Respond with ONLY the corrected `ArchitectureBlueprint` JSON object matching the interface above. No prose, no markdown fences, no commentary, no list of changes.
+Respond with ONLY the corrected `ArchitectureBlueprint` JSON object matching the interface above. No prose, no markdown fences, no commentary, no list of changes. Do NOT narrate or "think out loud" before the JSON — emit no preamble such as "I'll review the blueprint...". The very first character of your response must be `{` and the very last must be `}`. Do all reasoning silently.
 
 - All `id` values are kebab-case and unique across the union of `actors` and `containers`. `type` and `kind` values are exactly as enumerated (uppercase).
 - Reuse the existing id for any element you keep unchanged so downstream references stay stable. When you add an element, give it a new kebab-case id and wire all of its relationships. When you remove an element, also remove every relationship and flow participant that referenced it.

@@ -19,6 +19,7 @@ spring:
       timeout: 8m
     openai:
       api-key: ${OPENAI_API_KEY:dummy}
+      timeout: 8m
   http:
     serviceclient:
       mermaid-validator:
@@ -39,8 +40,8 @@ llm:
     - id: claude-haiku-4-5
       name: Claude Haiku 4.5
       provider: ANTHROPIC
-    - id: gpt-5
-      name: GPT-5
+    - id: gpt-5.5
+      name: GPT-5.5
       provider: OPENAI
     - id: gpt-5.4-mini
       name: GPT-5.4 Mini

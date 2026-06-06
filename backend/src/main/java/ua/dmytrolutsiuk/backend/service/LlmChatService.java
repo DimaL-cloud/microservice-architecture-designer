@@ -54,11 +54,13 @@ public class LlmChatService {
     public <T> T call(LlmModel model, String systemPrompt, String userPrompt, Integer maxOutputTokens,
                       Class<T> responseType, TokenUsageAccumulator accumulator) {
         return withRetry(() -> {
+            // LenientBeanOutputConverter (not the bare Class overload) so a model that wraps its
+            // JSON in a reasoning preamble or trailing note still parses instead of failing the run.
             var responseEntity = buildSpec(model, maxOutputTokens)
                     .system(systemPrompt)
                     .user(userPrompt)
                     .call()
-                    .responseEntity(responseType);
+                    .responseEntity(new LenientBeanOutputConverter<>(responseType));
             // Recorded only after a successful call returns, so a retried transient-error attempt
             // (which throws above) is never counted.
             record(accumulator, responseEntity.getResponse());
