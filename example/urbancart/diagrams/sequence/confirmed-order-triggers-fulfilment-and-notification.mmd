@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant event_bus as Event Backbone
+    participant fulfilment_service as Fulfilment Service
+    participant notification_service as Notification Service
+    participant messaging_provider as Email/SMS Provider
+    participant fulfilment_db as Fulfilment DB
+    event_bus->>fulfilment_service: Deliver order-confirmed event
+    fulfilment_service->>fulfilment_db: Create shipment record and start workflow
+    event_bus->>notification_service: Deliver order-confirmed event
+    notification_service->>messaging_provider: Send order-confirmation email/SMS/push
+    fulfilment_service-->>event_bus: Acknowledge message
+    notification_service-->>event_bus: Acknowledge message

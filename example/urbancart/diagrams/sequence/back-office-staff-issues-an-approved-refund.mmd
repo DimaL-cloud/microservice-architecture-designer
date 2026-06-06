@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    participant back_office_staff as Back-office Staff
+    participant api_gateway as API Gateway
+    participant order_service as Order Service
+    participant payment_service as Payment Service
+    participant payment_provider as Payment Provider
+    participant payment_db as Payment DB
+    participant event_bus as Event Backbone
+    participant notification_service as Notification Service
+    back_office_staff->>api_gateway: Request refund for an order
+    api_gateway->>+order_service: Route refund request
+    order_service->>order_service: Record refund as pending approval
+    Note over order_service: Single-approver authorization
+    order_service->>+payment_service: Process approved refund
+    payment_service->>+payment_provider: Issue refund
+    payment_provider-->>-payment_service: Refund result
+    payment_service->>payment_db: Record refund record
+    payment_service-->>-order_service: Refund processed
+    order_service->>event_bus: Publish order-refunded event
+    order_service-->>-api_gateway: Refund confirmation
+    api_gateway-->>back_office_staff: Refund confirmation
+    event_bus->>notification_service: Deliver order-refunded event
+    notification_service->>notification_service: Notify customer of refund

@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    participant web_consumer as Web Consumer
+    participant api_gateway as API Gateway
+    participant customer_service as Customer / Identity Service
+    participant event_bus as Event Backbone
+    participant order_service as Order Service
+    participant payment_service as Payment Service
+    participant fulfilment_service as Fulfilment Service
+    web_consumer->>api_gateway: Submit erasure request
+    api_gateway->>+customer_service: Route erasure request
+    customer_service->>customer_service: Record erasure request
+    customer_service->>event_bus: Publish erasure-request event
+    par PII deletion across owning services
+        event_bus->>order_service: Deliver erasure-request event
+        order_service->>order_service: Delete or anonymize owned PII
+        order_service->>event_bus: Publish erasure-completed ack
+    and
+        event_bus->>payment_service: Deliver erasure-request event
+        payment_service->>payment_service: Delete or anonymize owned PII
+        payment_service->>event_bus: Publish erasure-completed ack
+    and
+        event_bus->>fulfilment_service: Deliver erasure-request event
+        fulfilment_service->>fulfilment_service: Delete or anonymize owned PII
+        fulfilment_service->>event_bus: Publish erasure-completed ack
+    end
+    event_bus->>customer_service: Deliver erasure-completed acks
+    customer_service->>customer_service: Finalize profile deletion and mark complete
+    customer_service-->>-api_gateway: Erasure accepted

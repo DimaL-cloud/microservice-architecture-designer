@@ -1,0 +1,28 @@
+---
+title: System Context diagram for UrbanCart
+config:
+  layout: elk
+---
+flowchart TB
+    urbanCart["UrbanCart<br/>[Software System]<br/>EU-only online marketplace"]:::system
+    web_consumer(["Web Consumer<br/>[Person]<br/>Web storefront customer"]):::person
+    mobile_consumer(["Mobile Consumer<br/>[Person]<br/>Mobile app customer"]):::person
+    back_office_staff(["Back-office Staff<br/>[Person]<br/>Manages inventory, fulfilment, refunds"]):::person
+    payment_provider["Payment Provider<br/>[External System]<br/>Provider-hosted payment service (SAQ A)"]:::external
+    identity_provider["Identity Provider<br/>[External System]<br/>OAuth2/OIDC token provider"]:::external
+    search_cloud["Managed Search Service<br/>[External System]<br/>Hosted full-text search backend"]:::external
+    messaging_provider["Email/SMS Provider<br/>[External System]<br/>Transactional email and SMS"]:::external
+    analytics_provider["Analytics Provider<br/>[External System]<br/>Product telemetry and analytics"]:::external
+
+    web_consumer -->|"Browses, carts, and orders via<br/>[HTTPS/REST]"| urbanCart
+    mobile_consumer -->|"Browses, carts, and orders via<br/>[HTTPS/REST]"| urbanCart
+    back_office_staff -->|"Manages inventory, fulfilment, and refunds via<br/>[HTTPS/REST]"| urbanCart
+    urbanCart -->|"Validates access tokens against<br/>[HTTPS/OIDC]"| identity_provider
+    urbanCart -->|"Creates payment intents and refunds via<br/>[HTTPS/REST]"| payment_provider
+    urbanCart -->|"Sends email, SMS, and push via<br/>[HTTPS/REST]"| messaging_provider
+    urbanCart -->|"Updates the search index in, Delegates full-text search queries to<br/>[HTTPS/REST]"| search_cloud
+    urbanCart -->|"Emits product telemetry to<br/>[HTTPS/REST]"| analytics_provider
+
+    classDef system fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#ffffff

@@ -1,0 +1,82 @@
+---
+title: Container diagram for UrbanCart
+config:
+  layout: elk
+---
+flowchart TB
+    web_consumer(["Web Consumer<br/>[Person]<br/>Web storefront shopper"]):::person
+    mobile_consumer(["Mobile Consumer<br/>[Person]<br/>Mobile app shopper"]):::person
+    back_office_staff(["Back-office Staff<br/>[Person]<br/>Manages inventory and refunds"]):::person
+    payment_provider["Payment Provider<br/>[External System]<br/>Provider-hosted payment service"]:::external
+    identity_provider["Identity Provider<br/>[External System]<br/>OAuth/OIDC token provider"]:::external
+    search_cloud["Managed Search Service<br/>[External System]<br/>Hosted full-text search backend"]:::external
+    messaging_provider["Email/SMS Provider<br/>[External System]<br/>Transactional email and SMS"]:::external
+    analytics_provider["Analytics Provider<br/>[External System]<br/>Product telemetry platform"]:::external
+
+    subgraph systemBoundary["UrbanCart"]
+        direction TB
+        api_gateway["API Gateway<br/>[Amazon API Gateway / AWS ALB]<br/>Routes traffic and validates tokens"]:::container
+        catalog_service["Catalog Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Manages catalog and outbox events"]:::container
+        cart_service["Cart Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Maintains carts and totals"]:::container
+        order_service["Order Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Orchestrates order saga"]:::container
+        payment_service["Payment Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Coordinates payments and refunds"]:::container
+        inventory_service["Inventory Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Tracks stock and reservations"]:::container
+        fulfilment_service["Fulfilment Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Manages shipment workflows"]:::container
+        customer_service["Customer / Identity Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Manages profiles and GDPR erasure"]:::container
+        notification_service["Notification Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Sends email, SMS, and push"]:::container
+        search_indexer["Search Indexing Service<br/>[Kotlin 2 / Spring Boot 3 (EKS)]<br/>Keeps search index in sync"]:::container
+        catalog_db[("Catalog DB<br/>[PostgreSQL 16 (Amazon RDS, eu-central-1)]<br/>Stores products and outbox")]:::containerDb
+        cart_db[("Cart Store<br/>[Amazon DynamoDB (eu-central-1)]<br/>Stores cart documents")]:::containerDb
+        order_db[("Order DB<br/>[PostgreSQL 16 (Amazon RDS, eu-central-1)]<br/>Stores orders and saga state")]:::containerDb
+        payment_db[("Payment DB<br/>[PostgreSQL 16 (Amazon RDS, eu-central-1)]<br/>Stores payment and refund records")]:::containerDb
+        inventory_db[("Inventory DB<br/>[PostgreSQL 16 (Amazon RDS, eu-central-1)]<br/>Stores stock and reservations")]:::containerDb
+        fulfilment_db[("Fulfilment DB<br/>[PostgreSQL 16 (Amazon RDS, eu-central-1)]<br/>Stores shipment records")]:::containerDb
+        customer_db[("Customer DB<br/>[PostgreSQL 16 (Amazon RDS, eu-central-1)]<br/>Stores customer profiles and PII")]:::containerDb
+        catalog_cache[("Catalog Cache<br/>[Redis 7 (Amazon ElastiCache, eu-central-1)]<br/>Caches hot catalog reads")]:::containerDb
+        event_bus{{"Event Backbone<br/>[Amazon SNS + SQS (eu-central-1)]<br/>Carries async domain events"}}:::containerQueue
+    end
+
+    web_consumer -->|"Browses, carts, and orders via<br/>[HTTPS/REST]"| api_gateway
+    mobile_consumer -->|"Browses, carts, and orders via<br/>[HTTPS/REST]"| api_gateway
+    back_office_staff -->|"Manages inventory, fulfilment, and refunds via<br/>[HTTPS/REST]"| api_gateway
+    api_gateway -->|"Validates access tokens against<br/>[HTTPS/OIDC]"| identity_provider
+    api_gateway -->|"Routes catalog requests to<br/>[HTTPS/REST]"| catalog_service
+    api_gateway -->|"Routes cart requests to<br/>[HTTPS/REST]"| cart_service
+    api_gateway -->|"Routes order requests to<br/>[HTTPS/REST]"| order_service
+    api_gateway -->|"Routes payment requests to<br/>[HTTPS/REST]"| payment_service
+    api_gateway -->|"Routes inventory requests to<br/>[HTTPS/REST]"| inventory_service
+    api_gateway -->|"Routes fulfilment requests to<br/>[HTTPS/REST]"| fulfilment_service
+    api_gateway -->|"Routes customer requests to<br/>[HTTPS/REST]"| customer_service
+    catalog_service -->|"Reads and writes catalog data in<br/>[JDBC]"| catalog_db
+    catalog_service -->|"Caches catalog reads in<br/>[Redis protocol]"| catalog_cache
+    catalog_service -->|"Publishes catalog outbox events to<br/>[AWS SNS API/HTTPS]"| event_bus
+    cart_service -->|"Reads and writes carts in<br/>[DynamoDB API/HTTPS]"| cart_db
+    cart_service -->|"Fetches product prices from<br/>[HTTPS/REST]"| catalog_service
+    order_service -->|"Persists orders and saga state in<br/>[JDBC]"| order_db
+    order_service -->|"Reserves stock via<br/>[HTTPS/REST]"| inventory_service
+    order_service -->|"Initiates payment via<br/>[HTTPS/REST]"| payment_service
+    order_service -->|"Reads cart contents from<br/>[HTTPS/REST]"| cart_service
+    order_service -->|"Publishes order events to<br/>[AWS SNS API/HTTPS]"| event_bus
+    payment_service -->|"Persists payment records in<br/>[JDBC]"| payment_db
+    payment_service -->|"Creates payment intents and refunds via<br/>[HTTPS/REST]"| payment_provider
+    payment_service -->|"Publishes payment events to<br/>[AWS SNS API/HTTPS]"| event_bus
+    inventory_service -->|"Reads and writes stock and reservations in<br/>[JDBC]"| inventory_db
+    inventory_service -->|"Publishes inventory events to<br/>[AWS SNS API/HTTPS]"| event_bus
+    fulfilment_service -->|"Persists shipment records in<br/>[JDBC]"| fulfilment_db
+    fulfilment_service -->|"Consumes order events from and publishes fulfilment events to<br/>[AWS SQS API/HTTPS]"| event_bus
+    customer_service -->|"Reads and writes customer profiles in<br/>[JDBC]"| customer_db
+    customer_service -->|"Publishes erasure-request events to and consumes acks from<br/>[AWS SNS/SQS API/HTTPS]"| event_bus
+    notification_service -->|"Consumes domain events from<br/>[AWS SQS API/HTTPS]"| event_bus
+    notification_service -->|"Sends email, SMS, and push via<br/>[HTTPS/REST]"| messaging_provider
+    search_indexer -->|"Consumes catalog outbox events from<br/>[AWS SQS API/HTTPS]"| event_bus
+    search_indexer -->|"Updates the search index in<br/>[HTTPS/REST]"| search_cloud
+    catalog_service -->|"Delegates full-text search queries to<br/>[HTTPS/REST]"| search_cloud
+    catalog_service -->|"Emits product telemetry to<br/>[HTTPS/REST]"| analytics_provider
+    order_service -->|"Consumes payment and inventory saga events from<br/>[AWS SQS API/HTTPS]"| event_bus
+
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#ffffff
+    classDef container fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerDb fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef containerQueue fill:#1168bd,stroke:#0b4884,color:#ffffff
+    style systemBoundary fill:none,stroke:#9aa4b2,stroke-width:1px,color:#5b6472

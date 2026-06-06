@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant web_consumer as Web Consumer
+    participant api_gateway as API Gateway
+    participant order_service as Order Service
+    participant cart_service as Cart Service
+    participant inventory_service as Inventory Service
+    participant payment_service as Payment Service
+    participant payment_provider as Payment Provider
+    participant order_db as Order DB
+    participant event_bus as Event Backbone
+    web_consumer->>+api_gateway: Submit checkout after token validation
+    api_gateway->>+order_service: Route checkout request
+    order_service->>order_db: Persist pending order and start saga
+    order_service->>+cart_service: Read cart contents
+    cart_service-->>-order_service: Cart contents
+    order_service->>+inventory_service: Request strong stock reservation
+    inventory_service-->>-order_service: Reservation result
+    order_service->>+payment_service: Initiate payment intent
+    payment_service->>+payment_provider: Create payment intent via hosted fields
+    payment_provider-->>-payment_service: Payment intent result
+    payment_service-->>-order_service: Payment outcome
+    alt Payment confirmed
+        order_service->>order_db: Mark order confirmed
+        order_service->>event_bus: Publish order-confirmed event
+    else Payment failed
+        order_service->>inventory_service: Compensate stock reservation
+        order_service->>order_db: Cancel order
+    end
+    order_service-->>-api_gateway: Order confirmation
+    api_gateway-->>-web_consumer: Order confirmation

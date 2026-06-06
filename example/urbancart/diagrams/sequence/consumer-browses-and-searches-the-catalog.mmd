@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    participant mobile_consumer as Mobile Consumer
+    participant api_gateway as API Gateway
+    participant catalog_service as Catalog Service
+    participant catalog_cache as Catalog Cache
+    participant catalog_db as Catalog DB
+    participant search_cloud as Managed Search Service
+    participant search_indexer as Search Indexing Service
+    participant event_bus as Event Backbone
+    catalog_service->>event_bus: Publish catalog change outbox events
+    event_bus->>search_indexer: Deliver catalog change events
+    search_indexer->>search_cloud: Update search index
+    mobile_consumer->>+api_gateway: Request product listings or search
+    api_gateway->>+catalog_service: Route catalog request
+    alt Cache hit
+        catalog_service->>catalog_cache: Read cached catalog data
+        catalog_cache-->>catalog_service: Cached results
+    else Cache miss
+        catalog_service->>catalog_db: Read catalog data
+        catalog_db-->>catalog_service: Catalog data
+    end
+    opt Full-text query
+        catalog_service->>search_cloud: Delegate full-text search
+        search_cloud-->>catalog_service: Ranked results
+    end
+    catalog_service-->>-api_gateway: Catalog or search results
+    api_gateway-->>-mobile_consumer: Catalog or search results
